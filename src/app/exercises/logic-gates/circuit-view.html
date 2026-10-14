@@ -1,6 +1,6 @@
 <svg
   class="cv"
-  [attr.viewBox]="'0 0 ' + W + ' ' + H"
+  [attr.viewBox]="'0 0 ' + W + ' ' + H()"
   role="img"
   aria-label="Схема внутри блока (только просмотр)"
 >
@@ -9,7 +9,7 @@
       <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
     </pattern>
   </defs>
-  <rect class="cv-bg" [attr.width]="W" [attr.height]="H" rx="10" fill="url(#cv-dots)" />
+  <rect class="cv-bg" [attr.width]="W" [attr.height]="H()" rx="10" fill="url(#cv-dots)" />
 
   @for (w of wires(); track w.id) {
     <path class="wire-line" [class]="'wire-line ' + cls(wireVal(w))" [attr.d]="wireD(w)" />

@@ -35,7 +35,14 @@ export class CircuitView {
   readonly scope = input<ValueScope>(() => undefined);
 
   protected readonly W = BOARD_W;
-  protected readonly H = BOARD_H;
+
+  /** Высота доски растёт вместе со схемой: много вентилей или много портов — больше места */
+  protected readonly H = computed(() => {
+    const f = this.iface();
+    const lowest = Math.max(0, ...this.gates().map((g) => g.y)) + 110;
+    const ports = Math.max(f.inputs.length, f.outputs.length) * 50 + 40;
+    return Math.max(BOARD_H, lowest, ports);
+  });
   protected readonly GATE_W = GATE_W;
   protected readonly INPUT_X = INPUT_X;
   protected readonly OUT_X = OUT_X;
@@ -105,4 +112,12 @@ export class CircuitView {
   protected outX(g: GateInstance): number {
     return OUT_PIN_X[g.type];
   }
+}
+
+/** Узлы равномерно по всей высоте */
+function spread(names: readonly string[], height: number): Record<string, number> {
+  const res: Record<string, number> = {};
+  const step = names.length > 1 ? (height - 80) / (names.length - 1) : 0;
+  names.forEach((n, i) => (res[n] = names.length === 1 ? height / 2 : 40 + i * step));
+  return res;
 }

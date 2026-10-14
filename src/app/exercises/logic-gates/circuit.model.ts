@@ -61,9 +61,26 @@ export interface Wire {
   to: PinRef;
 }
 
+/** Встроенная память — «микросхема» с адресом и данными; содержимое грузится снаружи */
+export interface NativeInstance {
+  id: string;
+  kind: 'rom' | 'ram';
+  /** узлы-источники адреса, старший бит первым; undefined — не подключён */
+  addr: readonly (string | undefined)[];
+  /** узлы данных на запись (только ram), старший бит первым */
+  din?: readonly (string | undefined)[];
+  /** разрешение записи и такт (только ram) */
+  we?: string;
+  clk?: string;
+  /** имена узлов-выходов, старший бит первым */
+  dout: readonly string[];
+}
+
 export interface Circuit {
   gates: GateInstance[];
   wires: Wire[];
+  /** Встроенная память; общий симулятор её не умеет — только быстрый (cpu8/sim) */
+  natives?: NativeInstance[];
 }
 
 export interface TableRow {

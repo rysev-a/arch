@@ -1,4 +1,4 @@
-import { Circuit, GateInstance, NodeValue, Wire } from './circuit.model';
+import { Circuit, GateInstance, NativeInstance, NodeValue, Wire } from './circuit.model';
 import { Exercise } from './exercises';
 import { canConnect, sliceOf } from './interfaces';
 import type { Section } from '../../sections/sections';
@@ -48,10 +48,29 @@ export interface BlockSolution {
   busWires: BusWire[];
 }
 
-export type Solution = GateSolution | BlockSolution;
+/** Встроенная память: в схеме это «чёрный ящик» с адресом и данными, ячейки не из вентилей */
+export interface NativeSolution {
+  native: 'rom' | 'ram';
+  /** какие узлы блока что значат: адрес, данные на запись, разрешение, такт, данные на чтение */
+  addr: readonly string[];
+  din?: readonly string[];
+  we?: string;
+  clk?: string;
+  dout: readonly string[];
+}
+
+export type Solution = GateSolution | BlockSolution | NativeSolution;
 
 export function isBlockSolution(s: Solution): s is BlockSolution {
   return 'instances' in s;
+}
+
+export function isNativeSolution(s: Solution): s is NativeSolution {
+  return 'native' in s;
+}
+
+export function isGateSolution(s: Solution): s is GateSolution {
+  return 'gates' in s;
 }
 
 export interface BlockPort {
@@ -334,6 +353,32 @@ const EMPTY_SUBS: ReadonlyMap<string, SubExpansion> = new Map();
  * Решение из вентилей возвращается как есть.
  */
 export function expand(solution: Solution, iface: BlockInterface, lookup: BlockLookup): Expansion {
+  if (isNativeSolution(solution)) {
+    // выходные узлы блока — выходы памяти; внутри блока одна «микросхема»
+    const id = 'mem';
+    const dout = solution.dout.map((n) => `${id}.${n}`);
+    return {
+      circuit: {
+        gates: [],
+        wires: solution.dout.map((n, i) => wire(`w${i}`, dout[i], n)),
+        natives: [
+          {
+            id,
+            kind: solution.native,
+            addr: solution.addr,
+            din: solution.din,
+            we: solution.we,
+            clk: solution.clk,
+            dout,
+          },
+        ],
+      },
+      outSource: () => undefined,
+      inSource: () => undefined,
+      subs: EMPTY_SUBS,
+    };
+  }
+
   if (!isBlockSolution(solution)) {
     return {
       circuit: { gates: solution.gates, wires: solution.wires },
@@ -367,9 +412,14 @@ export function expand(solution: Solution, iface: BlockInterface, lookup: BlockL
     dst.forEach((d, i) => driver.set(`${w.to.node}|${d}`, { node: w.from.node, leaf: src[i] }));
   }
 
+  /** «внутренние источники» блока: его вентили и выходы встроенной памяти (а не входные узлы) */
   const isGateOf = new Map<string, Set<string>>();
   for (const [id, sub] of subs) {
-    isGateOf.set(id, new Set(sub.expansion.circuit.gates.map((g) => g.id)));
+    const c = sub.expansion.circuit;
+    isGateOf.set(
+      id,
+      new Set([...c.gates.map((g) => g.id), ...(c.natives ?? []).flatMap((n) => n.dout)]),
+    );
   }
 
   const resolveOut = (inst: string, outNode: string, seen: Set<string>): string | undefined => {
@@ -392,9 +442,28 @@ export function expand(solution: Solution, iface: BlockInterface, lookup: BlockL
 
   const gates: GateInstance[] = [];
   const wires: Wire[] = [];
+  const natives: NativeInstance[] = [];
 
   for (const [inst, sub] of subs) {
     const outs = new Set(sub.def.outputs);
+    /** узел внутри блока → узел плоской схемы (свой источник — с префиксом, вход блока — его драйвер) */
+    const map = (node: string | undefined): string | undefined =>
+      node === undefined
+        ? undefined
+        : isGateOf.get(inst)!.has(node)
+          ? `${inst}__${node}`
+          : resolveIn(inst, node, new Set());
+    for (const n of sub.expansion.circuit.natives ?? []) {
+      natives.push({
+        id: `${inst}__${n.id}`,
+        kind: n.kind,
+        addr: n.addr.map(map),
+        din: n.din?.map(map),
+        we: map(n.we),
+        clk: map(n.clk),
+        dout: n.dout.map((d) => `${inst}__${d}`),
+      });
+    }
     for (const g of sub.expansion.circuit.gates) gates.push({ ...g, id: `${inst}__${g.id}` });
     for (const w of sub.expansion.circuit.wires) {
       if (outs.has(w.to.node)) continue; // питание выходных узлов — это внутренность блока
@@ -417,7 +486,7 @@ export function expand(solution: Solution, iface: BlockInterface, lookup: BlockL
   }
 
   return {
-    circuit: { gates, wires },
+    circuit: natives.length > 0 ? { gates, wires, natives } : { gates, wires },
     outSource: (inst, outNode) => resolveOut(inst, outNode, new Set()),
     inSource: (inst, inNode) => resolveIn(inst, inNode, new Set()),
     subs,

@@ -24,6 +24,7 @@ import {
   BlockLibrary,
   BlockSolution,
   BusWire,
+  GateSolution,
   Expansion,
   Solution,
   ValueScope,
@@ -32,6 +33,7 @@ import {
   expand,
   interfaceOfExercise,
   isBlockSolution,
+  isGateSolution,
   localSolutionStore,
 } from './blocks';
 import {
@@ -677,6 +679,10 @@ export class CircuitLab {
     return isBlockSolution(s);
   }
 
+  protected isGate(s: Solution): s is GateSolution {
+    return isGateSolution(s);
+  }
+
   protected inspectInto(instanceId: string): void {
     this.inspectPath.update((p) => [...p, instanceId]);
     this.editUnlocked.set(false);
@@ -717,7 +723,7 @@ export class CircuitLab {
       reserveUids([...sol.instances.map((i) => i.id), ...sol.busWires.map((w) => w.id)]);
       this.instances.set(sol.instances);
       this.busWires.set(sol.busWires);
-    } else {
+    } else if (isGateSolution(sol)) {
       reserveUids([...sol.gates.map((g) => g.id), ...sol.wires.map((w) => w.id)]);
       this.gates.set(sol.gates);
       this.wires.set(sol.wires);

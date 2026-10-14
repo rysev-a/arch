@@ -43,6 +43,59 @@ export const INTERFACES: Readonly<Record<string, InterfaceType>> = {
     fields: bits('AccLoad', 'UseAdd', 'Take', 'PcLoad', 'Stop'),
   },
   Phases: { name: 'Phases', title: 'фазы такта', fields: bits('Fe', 'De', 'Ex', 'Wb') },
+
+  // ---- процессор «Мини-8» ----
+  Byte: {
+    name: 'Byte',
+    title: 'байт (8 бит)',
+    fields: bits('B7', 'B6', 'B5', 'B4', 'B3', 'B2', 'B1', 'B0'),
+  },
+  Reg3: { name: 'Reg3', title: 'номер регистра (3 бита)', fields: bits('R2', 'R1', 'R0') },
+  Op4: { name: 'Op4', title: 'код операции (4 бита)', fields: bits('O3', 'O2', 'O1', 'O0') },
+  Imm6: {
+    name: 'Imm6',
+    title: 'число из команды (6 бит)',
+    fields: bits('I5', 'I4', 'I3', 'I2', 'I1', 'I0'),
+  },
+  Instr16: {
+    name: 'Instr16',
+    title: 'команда (16 бит)',
+    fields: [
+      { name: 'op', type: 'Op4' },
+      { name: 'a', type: 'Reg3' },
+      { name: 'b', type: 'Reg3' },
+      { name: 'c', type: 'Imm6' },
+    ],
+  },
+  Oh8: {
+    name: 'Oh8',
+    title: 'один из восьми',
+    fields: bits('H7', 'H6', 'H5', 'H4', 'H3', 'H2', 'H1', 'H0'),
+  },
+  Ctrl: {
+    name: 'Ctrl',
+    title: 'сигналы управления процессора',
+    fields: bits(
+      'regWrite',
+      'selAdd',
+      'selAnd',
+      'selOr',
+      'selXor',
+      'selB',
+      'sub',
+      'useImm6',
+      'useImm8',
+      'load',
+      'store',
+      'isBeq',
+      'isBne',
+      'isBltu',
+      'isBgeu',
+      'isJmp',
+      'isHlt',
+      'isR',
+    ),
+  },
 };
 
 export function interfaceOf(type: string): InterfaceType {

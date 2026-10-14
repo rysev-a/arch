@@ -1,6 +1,8 @@
 import { Component, computed, effect, signal, untracked } from '@angular/core';
 import { AsmResult, assemble } from './assembler';
 import { OPS, PSEUDO, REG_COUNT, fields } from './isa';
+import { CpuInspector } from '../cpu8/cpu-inspector';
+import { GateMachine } from '../cpu8/gate-machine';
 import { Machine, MachineView } from './machine';
 import { AsmTask, CheckResult, TASKS, hex } from './tasks';
 
@@ -24,8 +26,12 @@ interface Cell {
 }
 
 /** Страница «Ассемблер»: пишем программу на языке процессора Мини-8 и запускаем её на виртуальном диске */
+/** Что умеет и эмулятор, и процессор на вентилях */
+type Runner = Machine | GateMachine;
+
 @Component({
   selector: 'app-asm-lab',
+  imports: [CpuInspector],
   templateUrl: './asm-lab.html',
   styleUrl: './asm-lab.css',
 })
@@ -41,20 +47,31 @@ export class AsmLab {
   protected readonly hintShown = signal(false);
   protected readonly solutionShown = signal(false);
   protected readonly selectedLine = signal<number | null>(null);
+  /** Чем выполнять: быстрой программой-эмулятором или настоящей схемой из вентилей */
+  protected readonly engine = signal<'emu' | 'gates'>('emu');
 
   protected readonly task = computed<AsmTask>(() => TASKS[this.index()]);
   protected readonly source = computed(() => this.codes()[this.task().id] ?? this.task().starter);
   protected readonly asm = computed<AsmResult>(() => assemble(this.source()));
 
   /** Любое действие с машиной увеличивает счётчик — так интерфейс узнаёт об изменениях */
-  private readonly version = signal(0);
+  protected readonly version = signal(0);
   private readonly resets = signal(0);
 
-  /** Новая машина — после любой правки программы, смены задания или «Сбросить» */
-  private readonly machine = computed<Machine | null>(() => {
+  /** Новая машина — после любой правки программы, смены задания, движка или «Сбросить» */
+  private readonly machine = computed<Runner | null>(() => {
     this.resets();
     const a = this.asm();
-    return a.errors.length > 0 ? null : new Machine(a.words, this.task().disk);
+    if (a.errors.length > 0) return null;
+    return this.engine() === 'gates'
+      ? new GateMachine(a.words, this.task().disk)
+      : new Machine(a.words, this.task().disk);
+  });
+
+  /** Схема процессора — только когда выбран режим «из вентилей» */
+  protected readonly gateMachine = computed(() => {
+    const m = this.machine();
+    return m instanceof GateMachine ? m : null;
   });
 
   protected readonly view = computed<MachineView | null>(() => {

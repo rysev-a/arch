@@ -1,0 +1,47 @@
+<div class="inspector">
+  <div class="bar">
+    <nav class="crumbs" aria-label="Где вы находитесь">
+      @for (lvl of levels(); track $index; let i = $index; let last = $last) {
+        @if (last) {
+          <strong>{{ lvl.title }}</strong>
+        } @else {
+          <button type="button" class="crumb" (click)="to(i)">{{ lvl.title }}</button>
+          <span class="sep">›</span>
+        }
+      }
+    </nav>
+    <div class="actions">
+      <span class="stat"> внутри: {{ stats().gates }} вентилей, {{ stats().dffs }} триггеров </span>
+      @if (path().length > 0) {
+        <button type="button" class="btn btn-outline btn-sm" (click)="up()">← Назад</button>
+      }
+    </div>
+  </div>
+
+  @if (blockSolution(current().solution); as sol) {
+    <app-block-board
+      [iface]="current().iface"
+      [library]="library"
+      [instances]="sol.instances"
+      [busWires]="sol.busWires"
+      [expansion]="current().expansion"
+      [scope]="current().scope"
+      [readonly]="true"
+      [height]="boardHeight(sol)"
+      (inspect)="into($event)"
+    />
+  } @else if (gateSolution(current().solution); as g) {
+    <app-circuit-view
+      [gates]="g.gates"
+      [wires]="g.wires"
+      [iface]="current().iface"
+      [scope]="current().scope"
+    />
+  } @else if (isNative(current().solution)) {
+    <p class="native">
+      Это встроенная память: ячейки здесь не из вентилей — как настоящая микросхема, у неё есть
+      адрес, данные и (у диска) запись по такту. Содержимое — на карточке «Виртуальный диск» выше
+      (для программы — в машинном коде слева).
+    </p>
+  }
+</div>

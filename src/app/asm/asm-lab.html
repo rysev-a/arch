@@ -134,6 +134,26 @@
       <div class="card">
         <div class="card-header asm-bar">
           <h3 class="card-title">Процессор</h3>
+          <div class="engine" role="group" aria-label="Чем выполнять программу">
+            <button
+              type="button"
+              class="seg"
+              [class.on]="engine() === 'emu'"
+              (click)="engine.set('emu')"
+              title="Быстрая программа-эмулятор"
+            >
+              Эмулятор
+            </button>
+            <button
+              type="button"
+              class="seg"
+              [class.on]="engine() === 'gates'"
+              (click)="engine.set('gates')"
+              title="Тот же процессор, собранный из вентилей: каждая команда считается схемой"
+            >
+              Схема из вентилей
+            </button>
+          </div>
           <div class="asm-buttons">
             <button
               type="button"
@@ -240,6 +260,23 @@
       </div>
     </section>
   </div>
+
+  @if (gateMachine(); as gm) {
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Устройство процессора</h3>
+        <p class="card-description">
+          Сейчас программу выполняет не эмулятор, а схема из вентилей: каждый такт в ней — целая
+          команда. Кнопка с лупой на блоке показывает, из чего он собран, вплоть до отдельных
+          вентилей; значения на проводах — живые, по текущему шагу. Нажмите «Шаг» и следите, как
+          сигналы бегут по схеме.
+        </p>
+      </div>
+      <div class="card-content">
+        <app-cpu-inspector [machine]="gm" [version]="version()" />
+      </div>
+    </div>
+  }
 
   <!-- ============ Справочник ============ -->
   <div class="card">

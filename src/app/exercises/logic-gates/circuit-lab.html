@@ -383,7 +383,7 @@
                   [readonly]="true"
                   (inspect)="inspectInto($event)"
                 />
-              } @else if (cur.solution) {
+              } @else if (isGate(cur.solution)) {
                 <app-circuit-view
                   [class.fill]="fullscreen()"
                   [gates]="cur.solution.gates"

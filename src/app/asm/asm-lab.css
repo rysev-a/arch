@@ -310,3 +310,28 @@
   color: hsl(var(--muted-foreground));
   font-weight: 600;
 }
+
+/* ---------- переключатель «чем выполнять» ---------- */
+.engine {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--muted) / 0.4);
+}
+.seg {
+  padding: 0.25rem 0.625rem;
+  border: none;
+  border-radius: calc(var(--radius) - 4px);
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.seg.on {
+  background: hsl(var(--card));
+  color: hsl(var(--foreground));
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.15);
+}
