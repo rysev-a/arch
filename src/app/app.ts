@@ -1,5 +1,6 @@
 import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { runDemoIfRequested } from './demo';
 import { ROADMAP, SECTIONS } from './sections/sections';
 
 @Component({
@@ -13,6 +14,10 @@ export class App {
   protected readonly roadmap = ROADMAP;
 
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
+
+  constructor() {
+    runDemoIfRequested();
+  }
 
   private initialTheme(): 'light' | 'dark' {
     try {
