@@ -19,6 +19,12 @@ export const routes: Routes = [
     loadComponent: () => import('./riscv/rv-lab').then((m) => m.RvLab),
     title: 'RISC-V — Как работает процессор',
   },
+  {
+    path: 'real',
+    loadComponent: () => import('./riscv/rv-lab').then((m) => m.RvLab),
+    data: { mode: 'real' },
+    title: 'Реальная сборка — Как работает процессор',
+  },
   // раздел «Мультиплексоры и защёлки» разделился на два
   { path: 'mux-latches', redirectTo: 'mux' },
   { path: '**', redirectTo: SECTIONS[0].slug },

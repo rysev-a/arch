@@ -67,9 +67,10 @@ export class RvMachine {
   lastReg: number | null = null;
   lastInsn = '';
 
-  constructor(image: Uint8Array, opts: { switches?: number } = {}) {
+  constructor(image: Uint8Array, opts: { switches?: number; entry?: number } = {}) {
     this.mem.set(image.subarray(0, RAM_SIZE));
     this.switches = (opts.switches ?? 0) & 0xff;
+    this.pc = (opts.entry ?? 0) >>> 0;
     this.regs[2] = STACK_TOP; // sp — вершина стека, как задаёт загрузчик
   }
 

@@ -8,6 +8,9 @@ import { ALU_EXERCISES } from '../exercises/logic-gates/exercises-alu';
 import { MEMORY_EXERCISES } from '../exercises/logic-gates/exercises-memory';
 import { DECODER_EXERCISES } from '../exercises/logic-gates/exercises-decoder';
 import { CPU_EXERCISES } from '../exercises/logic-gates/exercises-cpu';
+import { TASKS as ASM_TASKS } from '../asm/tasks';
+import { RV_TASKS } from '../riscv/rv-tasks';
+import { REAL_TASKS } from '../riscv/rv-real-tasks';
 
 export interface Section {
   slug: string;
@@ -94,8 +97,22 @@ export function sectionBySlug(slug: string): Section {
 /** Разделы в планах — видны в навигации, но пока недоступны */
 export const ROADMAP: readonly { title: string; description: string }[] = [];
 
-/** Страницы вне схем: ассемблер Мини-8 и настоящий RISC-V */
-export const EXTRA_PAGES: readonly { slug: string; title: string }[] = [
-  { slug: 'asm', title: 'Ассемблер' },
-  { slug: 'riscv', title: 'RISC-V' },
+export interface ExtraPage {
+  slug: string;
+  title: string;
+  /** Где страница хранит прогресс (localStorage) */
+  storageKey: string;
+  tasks: readonly { id: string; title: string }[];
+}
+
+/** Страницы вне схем: ассемблер Мини-8, RISC-V на учебной плате и реальная сборка */
+export const EXTRA_PAGES: readonly ExtraPage[] = [
+  { slug: 'asm', title: 'Ассемблер', storageKey: 'processor-asm-v1', tasks: ASM_TASKS },
+  { slug: 'riscv', title: 'RISC-V', storageKey: 'processor-riscv-v1', tasks: RV_TASKS },
+  {
+    slug: 'real',
+    title: 'Реальная сборка',
+    storageKey: 'processor-riscv-real-v1',
+    tasks: REAL_TASKS,
+  },
 ];

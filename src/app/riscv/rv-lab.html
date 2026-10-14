@@ -217,51 +217,71 @@
         </div>
       }
 
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Периферия</h3>
-          <p class="card-description">
-            Устройства подключены к тем же шинам, что и память, и видны программе как обычные
-            адреса. Запись или чтение по такому адресу — это общение с устройством.
-          </p>
+      @if (isReal) {
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Вывод программы</h3>
+            <p class="card-description">
+              Всё, что программа отправила в стандартный вывод системным вызовом write. Когда она
+              вызывает exit, здесь же видно код возврата.
+            </p>
+          </div>
+          <div class="card-content">
+            <pre class="console mono">{{ view()?.uart ?? '' }}<span class="caret">▮</span></pre>
+            @if (view(); as v) {
+              @if (v.exitCode !== null) {
+                <p class="exit-line mono">код возврата: {{ shellCode(v.exitCode) }}</p>
+              }
+            }
+          </div>
         </div>
-        <div class="card-content">
-          <div class="dev-row">
-            <span class="dev-name">Светодиоды</span>
-            <span class="leds" aria-label="Светодиоды">
-              @for (i of ledIndexes; track i) {
-                <span class="led" [class.on]="ledOn(i)" [title]="'LED' + i">{{ i }}</span>
-              }
-            </span>
+      } @else {
+        <div class="card">
+          <div class="card-header">
+            <h3 class="card-title">Периферия</h3>
+            <p class="card-description">
+              Устройства подключены к тем же шинам, что и память, и видны программе как обычные
+              адреса. Запись или чтение по такому адресу — это общение с устройством.
+            </p>
           </div>
-          <div class="dev-row">
-            <span class="dev-name">Переключатели</span>
-            <span class="leds" aria-label="Переключатели">
-              @for (i of ledIndexes; track i) {
-                <span class="sw" [class.on]="switchOn(i)" [title]="'SW' + i">{{ i }}</span>
-              }
-            </span>
+          <div class="card-content">
+            <div class="dev-row">
+              <span class="dev-name">Светодиоды</span>
+              <span class="leds" aria-label="Светодиоды">
+                @for (i of ledIndexes; track i) {
+                  <span class="led" [class.on]="ledOn(i)" [title]="'LED' + i">{{ i }}</span>
+                }
+              </span>
+            </div>
+            <div class="dev-row">
+              <span class="dev-name">Переключатели</span>
+              <span class="leds" aria-label="Переключатели">
+                @for (i of ledIndexes; track i) {
+                  <span class="sw" [class.on]="switchOn(i)" [title]="'SW' + i">{{ i }}</span>
+                }
+              </span>
+            </div>
+            <div class="dev-row">
+              <span class="dev-name">Таймер</span>
+              <span class="mono">{{ view()?.steps ?? 0 }}</span>
+            </div>
+            <p class="data-title">Консоль (UART):</p>
+            <pre class="console mono">{{ view()?.uart ?? '' }}<span class="caret">▮</span></pre>
+            <table class="ref mmio">
+              <tbody>
+                @for (m of mmio; track m.addr) {
+                  <tr>
+                    <td class="left mono">0x{{ m.addr.toString(16) }}</td>
+                    <td class="left">
+                      <strong>{{ m.name }}</strong> — {{ m.note }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
           </div>
-          <div class="dev-row">
-            <span class="dev-name">Таймер</span>
-            <span class="mono">{{ view()?.steps ?? 0 }}</span>
-          </div>
-          <p class="data-title">Консоль (UART):</p>
-          <pre class="console mono">{{ view()?.uart ?? '' }}<span class="caret">▮</span></pre>
-          <table class="ref mmio">
-            <tbody>
-              @for (m of mmio; track m.addr) {
-                <tr>
-                  <td class="left mono">0x{{ m.addr.toString(16) }}</td>
-                  <td class="left">
-                    <strong>{{ m.name }}</strong> — {{ m.note }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
         </div>
-      </div>
+      }
 
       <div class="card">
         <div class="card-header rv-bar">
@@ -312,6 +332,49 @@
       </div>
     </section>
   </div>
+
+  @if (isReal) {
+    <!-- ============ Сборка у себя ============ -->
+    <div class="card">
+      <div class="card-header rv-bar">
+        <div>
+          <h3 class="card-title">Собрать у себя на компьютере</h3>
+          <p class="card-description">
+            Эта программа — обычный файл на ассемблере RISC-V. Скачайте проект, установите
+            инструменты (команды — в README) и выполните
+            <span class="mono">make run</span>: настоящий компилятор превратит текст в те же
+            32-битные слова, что в листинге выше, а qemu выполнит их.
+          </p>
+        </div>
+        <div class="rv-buttons">
+          <button type="button" class="btn btn-default btn-sm" (click)="downloadZip()">
+            Скачать проект (.zip)
+          </button>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="engine file-tabs" role="group" aria-label="Файлы проекта">
+          @for (f of files(); track f.name) {
+            <button
+              type="button"
+              class="seg"
+              [class.on]="openFile() === f.name"
+              (click)="openFile.set(f.name)"
+            >
+              {{ f.name }}
+            </button>
+          }
+        </div>
+        <p class="mem-note">
+          {{ shownFile().note }}
+          <button type="button" class="btn btn-outline btn-sm" (click)="download(shownFile())">
+            Скачать {{ shownFile().name }}
+          </button>
+        </p>
+        <pre class="data-block mono file-view">{{ shownFile().content }}</pre>
+      </div>
+    </div>
+  }
 
   <!-- ============ Справочник ============ -->
   <div class="card">

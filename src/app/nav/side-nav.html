@@ -1,0 +1,76 @@
+<nav class="side-nav" aria-label="Разделы курса">
+  @for (c of chapters(); track c.slug) {
+    <div class="chapter" [class.active]="c.active">
+      <button
+        type="button"
+        class="chapter-btn"
+        [attr.aria-expanded]="isOpen(c.slug)"
+        (click)="toggle(c)"
+      >
+        <svg
+          class="chevron"
+          [class.open]="isOpen(c.slug)"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <path d="m9 6 6 6-6 6" />
+        </svg>
+        <span class="chapter-title">{{ c.title }}</span>
+        <span class="count" [class.all]="c.done === c.items.length">
+          {{ c.done }}/{{ c.items.length }}
+        </span>
+      </button>
+
+      @if (isOpen(c.slug)) {
+        <ul class="ex-list">
+          @for (e of c.items; track e.id) {
+            <li>
+              <a
+                class="ex"
+                [class.current]="e.status === 'current'"
+                [routerLink]="['/', c.slug]"
+                [queryParams]="query(c, e.id)"
+                (click)="navigated.emit()"
+              >
+                <span
+                  class="status"
+                  [class]="'status ' + e.status"
+                  [attr.title]="statusLabel(e.status)"
+                >
+                  @switch (e.status) {
+                    @case ('solved') {
+                      ✓
+                    }
+                    @case ('current') {
+                      ●
+                    }
+                    @default {
+                      ○
+                    }
+                  }
+                </span>
+                <span class="ex-title">{{ e.title }}</span>
+                <span class="sr-only">— {{ statusLabel(e.status) }}</span>
+              </a>
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @for (r of roadmap; track r.title) {
+    <div class="chapter soon" [title]="r.description + ' — скоро'">
+      <span class="chapter-btn">
+        <span class="chevron-gap"></span>
+        <span class="chapter-title">{{ r.title }}</span>
+        <span class="badge badge-warning">скоро</span>
+      </span>
+    </div>
+  }
+</nav>

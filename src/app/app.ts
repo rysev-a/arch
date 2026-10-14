@@ -1,18 +1,17 @@
 import { Component, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { RouterOutlet } from '@angular/router';
 import { runDemoIfRequested } from './demo';
-import { EXTRA_PAGES, ROADMAP, SECTIONS } from './sections/sections';
+import { SideNav } from './nav/side-nav';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, SideNav],
   styleUrl: './app.css',
   templateUrl: './app.html',
 })
 export class App {
-  protected readonly sections = SECTIONS;
-  protected readonly roadmap = ROADMAP;
-  protected readonly extraPages = EXTRA_PAGES;
+  /** На узком экране список разделов прячется и открывается кнопкой в шапке */
+  protected readonly menuOpen = signal(false);
 
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
 

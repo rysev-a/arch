@@ -1,4 +1,7 @@
-import { Component, computed, effect, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { touchProgress } from '../nav/progress';
 import { AsmResult, assemble } from './assembler';
 import { OPS, PSEUDO, REG_COUNT, fields } from './isa';
 import { CpuInspector } from '../cpu8/cpu-inspector';
@@ -36,6 +39,7 @@ type Runner = Machine | GateMachine;
   styleUrl: './asm-lab.css',
 })
 export class AsmLab {
+  private readonly route = inject(ActivatedRoute);
   protected readonly tasks = TASKS;
   protected readonly ops = OPS;
   protected readonly pseudo = PSEUDO;
@@ -136,6 +140,23 @@ export class AsmLab {
     }
   });
 
+  /** Ссылка вида ?task=<id> (из боковой панели) открывает нужное задание */
+  private readonly router = inject(Router);
+  private readonly queryParams = toSignal(this.route.queryParamMap, { requireSync: true });
+  private readonly taskParamEffect = effect(() => {
+    const id = this.queryParams().get('task');
+    if (!id) return;
+    untracked(() => {
+      const i = this.tasks.findIndex((t) => t.id === id);
+      if (i >= 0) this.selectTask(i);
+      this.router.navigate([], {
+        queryParams: { task: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+  });
+
   constructor() {
     try {
       const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<Saved> | null;
@@ -162,6 +183,7 @@ export class AsmLab {
     } catch {
       // localStorage недоступен — прогресс не сохранится
     }
+    touchProgress();
   }
 
   protected onInput(event: Event): void {

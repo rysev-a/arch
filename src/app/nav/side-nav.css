@@ -1,0 +1,120 @@
+:host {
+  display: block;
+}
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+.chapter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  padding: 0.4375rem 0.5rem;
+  border: none;
+  border-radius: calc(var(--radius) - 2px);
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.chapter-btn:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+.chapter.active > .chapter-btn {
+  color: hsl(var(--foreground));
+  background: hsl(var(--secondary));
+}
+.chevron {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  transition: transform 0.15s ease;
+}
+.chevron.open {
+  transform: rotate(90deg);
+}
+.chevron-gap {
+  flex: none;
+  width: 0.875rem;
+}
+.chapter-title {
+  flex: 1;
+  min-width: 0;
+}
+.count {
+  flex: none;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground));
+}
+.count.all {
+  color: hsl(var(--success));
+}
+.chapter.soon {
+  opacity: 0.55;
+}
+.chapter.soon .chapter-btn {
+  cursor: default;
+}
+
+/* ---------- упражнения главы ---------- */
+.ex-list {
+  list-style: none;
+  margin: 0.125rem 0 0.5rem 0.9375rem;
+  padding: 0 0 0 0.5rem;
+  border-left: 1px solid hsl(var(--border));
+}
+.ex {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: calc(var(--radius) - 4px);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+.ex:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+.ex.current {
+  color: hsl(var(--foreground));
+  font-weight: 600;
+  background: hsl(var(--accent) / 0.7);
+}
+.status {
+  flex: none;
+  width: 0.875rem;
+  text-align: center;
+  font-size: 0.75rem;
+}
+.status.solved {
+  color: hsl(var(--success));
+  font-weight: 700;
+}
+.status.current {
+  color: hsl(var(--foreground));
+}
+.status.todo {
+  opacity: 0.55;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

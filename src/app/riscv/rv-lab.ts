@@ -1,10 +1,17 @@
-import { Component, computed, effect, signal, untracked } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
+import { touchProgress } from '../nav/progress';
 import { ABI_NAMES, OPS, PSEUDO, fieldsOf } from './rv-isa';
 import { AsmResult, STACK_TOP, assemble } from './rv-asm';
 import { MMIO_MAP, RvMachine, RvView } from './rv-machine';
 import { CheckResult, RV_TASKS, RvTask, fullSource } from './rv-tasks';
+import { REAL_TASKS } from './rv-real-tasks';
+import { ProjectFile, projectFiles, projectZip } from './rv-project';
+import { makeZip } from './zip';
 
 const STORAGE_KEY = 'processor-riscv-v1';
+const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
 const RUN_LIMIT = 200_000;
 
 interface Saved {
@@ -29,14 +36,21 @@ interface MemWindow {
 
 const hex8 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0');
 
-/** Страница «RISC-V»: настоящие 32-битные команды на «мягком» процессоре с памятью и периферией */
+/**
+ * Страница «RISC-V»: настоящие 32-битные команды на «мягком» процессоре с памятью и периферией.
+ * В режиме real (маршрут /real) — целые настоящие программы, которые можно собрать у себя.
+ */
 @Component({
   selector: 'app-rv-lab',
   templateUrl: './rv-lab.html',
   styleUrl: './rv-lab.css',
 })
 export class RvLab {
-  protected readonly tasks = RV_TASKS;
+  private readonly route = inject(ActivatedRoute);
+  private readonly real = this.route.snapshot.data['mode'] === 'real';
+  protected readonly isReal = this.real;
+  protected readonly tasks: readonly RvTask[] = this.real ? REAL_TASKS : RV_TASKS;
+  private readonly storageKey = this.real ? STORAGE_KEY_REAL : STORAGE_KEY;
   protected readonly ops = OPS;
   protected readonly pseudo = PSEUDO;
   protected readonly mmio = MMIO_MAP;
@@ -55,7 +69,7 @@ export class RvLab {
   protected readonly selectedLine = signal<number | null>(null);
   protected readonly windowId = signal('text');
 
-  protected readonly task = computed<RvTask>(() => RV_TASKS[this.index()]);
+  protected readonly task = computed<RvTask>(() => this.tasks[this.index()]);
   protected readonly source = computed(() => this.codes()[this.task().id] ?? this.task().starter);
   protected readonly asm = computed<AsmResult>(() =>
     assemble(fullSource(this.source(), this.task())),
@@ -70,7 +84,7 @@ export class RvLab {
     this.resets();
     const a = this.asm();
     if (a.errors.length > 0) return null;
-    return new RvMachine(a.image, { switches: this.task().switches });
+    return new RvMachine(a.image, { switches: this.task().switches, entry: a.entry });
   });
 
   protected readonly view = computed<RvView | null>(() => {
@@ -89,6 +103,13 @@ export class RvLab {
     const v = this.view();
     return !!v && !v.halted && !v.error;
   });
+
+  /** Файлы для сборки на своём компьютере: ваша программа + Makefile + README */
+  protected readonly files = computed<ProjectFile[]>(() => projectFiles(this.source()));
+  protected readonly openFile = signal('program.s');
+  protected readonly shownFile = computed(
+    () => this.files().find((f) => f.name === this.openFile()) ?? this.files()[0],
+  );
 
   protected readonly switches = computed(() => this.task().switches ?? 0);
 
@@ -146,13 +167,36 @@ export class RvLab {
     }
   });
 
+  /** Ссылка вида ?task=<id> (из боковой панели) открывает нужное задание */
+  private readonly router = inject(Router);
+  private readonly queryParams = toSignal(this.route.queryParamMap, { requireSync: true });
+  private readonly taskParamEffect = effect(() => {
+    const id = this.queryParams().get('task');
+    if (!id) return;
+    untracked(() => {
+      const i = this.tasks.findIndex((t) => t.id === id);
+      if (i >= 0) this.selectTask(i);
+      this.router.navigate([], {
+        queryParams: { task: null },
+        queryParamsHandling: 'merge',
+        replaceUrl: true,
+      });
+    });
+  });
+
   constructor() {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as Partial<Saved> | null;
+      const raw = JSON.parse(
+        localStorage.getItem(this.storageKey) ?? 'null',
+      ) as Partial<Saved> | null;
       if (raw) {
         this.codes.set(raw.codes ?? {});
         this.solved.set(new Set(raw.solved ?? []));
-        if (typeof raw.current === 'number' && raw.current >= 0 && raw.current < RV_TASKS.length) {
+        if (
+          typeof raw.current === 'number' &&
+          raw.current >= 0 &&
+          raw.current < this.tasks.length
+        ) {
           this.index.set(raw.current);
         }
       }
@@ -168,10 +212,11 @@ export class RvLab {
         solved: [...this.solved()],
         current: this.index(),
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(this.storageKey, JSON.stringify(data));
     } catch {
       // localStorage недоступен — прогресс не сохранится
     }
+    touchProgress();
   }
 
   protected onInput(event: Event): void {
@@ -237,8 +282,31 @@ export class RvLab {
     this.save();
   }
 
+  protected download(f: ProjectFile): void {
+    this.saveBlob(new Blob([f.content], { type: 'text/plain;charset=utf-8' }), f.name);
+  }
+
+  protected downloadZip(): void {
+    const zip = makeZip(projectZip(this.files()));
+    this.saveBlob(new Blob([zip as BlobPart], { type: 'application/zip' }), 'riscv-program.zip');
+  }
+
+  private saveBlob(blob: Blob, name: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
   protected cellClass(c: Cell): string {
     return ['cell', c.read ? 'read' : '', c.written ? 'written' : ''].filter(Boolean).join(' ');
+  }
+
+  /** Оболочка (echo $?) показывает код возврата по модулю 256 */
+  protected shellCode(code: number): number {
+    return code & 0xff;
   }
 
   protected hexByte(n: number): string {

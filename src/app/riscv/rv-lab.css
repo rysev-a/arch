@@ -455,3 +455,17 @@
   flex-wrap: nowrap;
   white-space: nowrap;
 }
+
+.exit-line {
+  margin: 0.5rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+.file-tabs {
+  margin-bottom: 0.5rem;
+}
+.file-view {
+  max-height: 22rem;
+  overflow: auto;
+  white-space: pre;
+}

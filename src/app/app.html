@@ -22,6 +22,24 @@
     <div class="header-actions">
       <button
         type="button"
+        class="btn btn-outline btn-icon menu-btn"
+        (click)="menuOpen.set(!menuOpen())"
+        [attr.aria-expanded]="menuOpen()"
+        title="Разделы"
+        aria-label="Показать или скрыть список разделов"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+      <button
+        type="button"
         class="btn btn-outline btn-icon"
         (click)="toggleTheme()"
         [title]="theme() === 'dark' ? 'Светлая тема' : 'Тёмная тема'"
@@ -55,35 +73,22 @@
       </button>
     </div>
   </div>
-
-  <nav class="app-nav">
-    <div class="app-nav-inner">
-      @for (s of sections; track s.slug) {
-        <a class="nav-link" [routerLink]="['/' + s.slug]" routerLinkActive="active">{{
-          s.title
-        }}</a>
-      }
-      @for (p of extraPages; track p.slug) {
-        <a class="nav-link" [routerLink]="['/' + p.slug]" routerLinkActive="active">{{
-          p.title
-        }}</a>
-      }
-      @for (r of roadmap; track r.title) {
-        <span class="nav-link soon" [title]="r.description + ' — скоро'">
-          {{ r.title }}
-          <span class="badge badge-warning">скоро</span>
-        </span>
-      }
-    </div>
-  </nav>
 </header>
 
-<main class="app-main">
-  <router-outlet />
-</main>
+<div class="app-shell">
+  <aside class="app-side" [class.open]="menuOpen()">
+    <app-side-nav (navigated)="menuOpen.set(false)" />
+  </aside>
 
-<footer class="app-footer">
-  <span>Сделано на Angular · SVG · signals</span>
-  <span class="dot-sep">·</span>
-  <span>Серия «От вентиля к процессору»</span>
-</footer>
+  <div class="app-content">
+    <main class="app-main">
+      <router-outlet />
+    </main>
+
+    <footer class="app-footer">
+      <span>Сделано на Angular · SVG · signals</span>
+      <span class="dot-sep">·</span>
+      <span>Серия «От вентиля к процессору»</span>
+    </footer>
+  </div>
+</div>

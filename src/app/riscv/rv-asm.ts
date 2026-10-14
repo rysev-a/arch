@@ -45,6 +45,8 @@ export interface AsmResult {
   dataSize: number;
   lines: AsmLine[];
   symbols: Record<string, number>;
+  /** с какого адреса начинается выполнение: метка _start, а если её нет — 0 */
+  entry: number;
   errors: AsmError[];
 }
 
@@ -229,8 +231,9 @@ export function assemble(source: string): AsmResult {
         return 2;
       case 'li': {
         if (ops.length !== 2) return 1; // ошибку отловит второй проход
-        const v = evalExpr(ops[1], line);
-        if (v === undefined) return 1;
+        const raw = evalExpr(ops[1], line);
+        if (raw === undefined) return 1;
+        const v = raw | 0; // 0xFFFFFFFF и −1 — одно и то же 32-битное слово
         if (v >= -2048 && v <= 2047) return 1;
         return (v & 0xfff) === 0 ? 1 : 2;
       }
@@ -427,7 +430,8 @@ export function assemble(source: string): AsmResult {
     });
   }
 
-  return { image, textSize: size.text, dataSize: size.data, lines, symbols, errors };
+  const entry = symbols['_start'] ?? TEXT_BASE;
+  return { image, textSize: size.text, dataSize: size.data, lines, symbols, entry, errors };
 }
 
 const PSEUDO_NAMES = new Set([
@@ -552,12 +556,13 @@ function encodeInsn(
     case 'li': {
       if (!need(2, 'li rd, число')) return undefined;
       const rd = reg(ops[0]);
-      const v = evalExpr(ops[1], line);
-      if (rd === undefined || v === undefined) return undefined;
-      if (v < -0x80000000 || v > 0xffffffff) {
-        fail(line, `Число ${v} не помещается в 32 бита`);
+      const raw = evalExpr(ops[1], line);
+      if (rd === undefined || raw === undefined) return undefined;
+      if (raw < -0x80000000 || raw > 0xffffffff) {
+        fail(line, `Число ${raw} не помещается в 32 бита`);
         return undefined;
       }
+      const v = raw | 0; // 0xFFFFFFFF и −1 — одно и то же 32-битное слово
       if (v >= -2048 && v <= 2047) return [encI(op('addi'), rd, 0, v)];
       const lo = sext(v, 12);
       const hi = ((v - lo) >>> 12) & 0xfffff;

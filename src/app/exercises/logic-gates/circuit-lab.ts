@@ -85,6 +85,7 @@ import {
   gatePinsOf,
 } from './gate-shapes';
 import { SECTIONS, Section } from '../../sections/sections';
+import { touchProgress } from '../../nav/progress';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
 const TICK_MS = 600;
@@ -452,6 +453,7 @@ export class CircuitLab {
     } catch {
       // localStorage недоступен — прогресс просто не сохранится
     }
+    touchProgress();
   }
 
   /* ============================================================
