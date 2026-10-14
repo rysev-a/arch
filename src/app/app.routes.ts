@@ -14,6 +14,11 @@ export const routes: Routes = [
     loadComponent: () => import('./asm/asm-lab').then((m) => m.AsmLab),
     title: 'Ассемблер — Как работает процессор',
   },
+  {
+    path: 'riscv',
+    loadComponent: () => import('./riscv/rv-lab').then((m) => m.RvLab),
+    title: 'RISC-V — Как работает процессор',
+  },
   // раздел «Мультиплексоры и защёлки» разделился на два
   { path: 'mux-latches', redirectTo: 'mux' },
   { path: '**', redirectTo: SECTIONS[0].slug },

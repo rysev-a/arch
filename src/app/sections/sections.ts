@@ -94,7 +94,8 @@ export function sectionBySlug(slug: string): Section {
 /** Разделы в планах — видны в навигации, но пока недоступны */
 export const ROADMAP: readonly { title: string; description: string }[] = [];
 
-/** Страницы вне схем: пока одна — ассемблер на готовом процессоре */
+/** Страницы вне схем: ассемблер Мини-8 и настоящий RISC-V */
 export const EXTRA_PAGES: readonly { slug: string; title: string }[] = [
   { slug: 'asm', title: 'Ассемблер' },
+  { slug: 'riscv', title: 'RISC-V' },
 ];

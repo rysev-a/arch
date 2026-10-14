@@ -1,0 +1,365 @@
+<div class="rv">
+  <!-- ============ Условие ============ -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        Задание {{ index() + 1 }} из {{ tasks.length }} · {{ task().title }}
+      </h3>
+      <p class="card-description">{{ task().text }}</p>
+    </div>
+    <div class="card-content stepper-row">
+      @for (t of tasks; track t.id; let i = $index) {
+        <button
+          type="button"
+          class="step-chip"
+          [class.current]="i === index()"
+          [class.solved]="solved().has(t.id)"
+          [title]="i + 1 + '. ' + t.title"
+          (click)="selectTask(i)"
+        >
+          @if (solved().has(t.id)) {
+            ✓
+          } @else {
+            {{ i + 1 }}
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="rv-grid">
+    <!-- ============ Редактор и машинный код ============ -->
+    <section class="rv-left">
+      <div class="card">
+        <div class="card-header rv-bar">
+          <h3 class="card-title">Программа</h3>
+          <div class="rv-buttons">
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="hintShown.set(!hintShown())"
+            >
+              {{ hintShown() ? 'Скрыть подсказку' : 'Подсказка' }}
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="showSolution()">
+              Показать решение
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="restoreStarter()">
+              Начать заново
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          @if (hintShown()) {
+            <p class="rv-hint pop-in">{{ task().hint }}</p>
+          }
+          <textarea
+            class="editor"
+            spellcheck="false"
+            rows="16"
+            [value]="source()"
+            (input)="onInput($event)"
+            (keydown)="onKey($event)"
+            aria-label="Текст программы на ассемблере RISC-V"
+          ></textarea>
+
+          @if (task().data.trim()) {
+            <p class="data-title">Данные задания (доступны по меткам, менять нельзя):</p>
+            <pre class="data-block mono">{{ task().data }}</pre>
+          }
+
+          @if (asm().errors.length > 0) {
+            <ul class="rv-errors" role="alert">
+              @for (e of asm().errors; track $index) {
+                <li>
+                  <strong>Строка {{ e.line }}:</strong> {{ e.message }}
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Машинный код</h3>
+          <p class="card-description">
+            Что ассемблер сделал из вашей программы: каждая команда — одно настоящее 32-битное слово
+            RISC-V. Цветом выделены поля; нажмите на строку, чтобы увидеть формат команды.
+          </p>
+        </div>
+        <div class="card-content listing-wrap">
+          @if (listing().length === 0) {
+            <p class="muted">Команд пока нет.</p>
+          } @else {
+            <table class="listing">
+              <thead>
+                <tr>
+                  <th>адрес</th>
+                  <th>hex</th>
+                  <th class="left">поля (старшие биты слева)</th>
+                  <th class="left">команда</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of listing(); track l.addr) {
+                  <tr
+                    [class.current]="l.current"
+                    [class.selected]="selectedLine() === l.addr"
+                    [class.pseudo]="l.pseudo"
+                    (click)="selectedLine.set(selectedLine() === l.addr ? null : l.addr)"
+                  >
+                    <td class="mono">{{ l.addrHex }}</td>
+                    <td class="mono">{{ l.wordHex }}</td>
+                    <td class="left mono fields">
+                      @for (f of l.parts.fields; track $index) {
+                        <span [class]="'fld ' + f.cls" [title]="f.name">{{ f.bits }}</span>
+                      }
+                    </td>
+                    <td class="left mono">{{ l.text }}</td>
+                  </tr>
+                  @if (selectedLine() === l.addr) {
+                    <tr class="explain-row">
+                      <td colspan="4">
+                        <div class="field-legend pop-in">
+                          <strong>Формат {{ l.parts.fmt }}.</strong>
+                          @for (f of l.parts.fields; track $index) {
+                            <span class="legend-item">
+                              <span [class]="'fld ' + f.cls">{{ f.bits }}</span>
+                              {{ f.name }}
+                            </span>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Машина ============ -->
+    <section class="rv-right">
+      <div class="card">
+        <div class="card-header rv-bar">
+          <h3 class="card-title">Процессор RV32IM</h3>
+          <div class="rv-buttons">
+            <button
+              type="button"
+              class="btn btn-default btn-sm"
+              (click)="step()"
+              [disabled]="!canStep()"
+            >
+              Шаг ▸
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="run()"
+              [disabled]="!canStep()"
+            >
+              Выполнить
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="reset()">Сбросить</button>
+          </div>
+        </div>
+        <div class="card-content">
+          @if (view(); as v) {
+            <div class="regs">
+              @for (r of regs(); track r.num) {
+                <div
+                  class="reg"
+                  [class.changed]="r.changed"
+                  [title]="'x' + r.num + ' = 0x' + r.hex"
+                >
+                  <span class="reg-name"
+                    >{{ r.name }} <small>x{{ r.num }}</small></span
+                  >
+                  <span class="reg-val mono">{{ r.signed }}</span>
+                  <span class="reg-hex mono">{{ r.hex }}</span>
+                </div>
+              }
+            </div>
+            <div class="status">
+              <span class="badge badge-secondary">pc = 0x{{ hexAddr(v.pc) }}</span>
+              <span class="badge badge-secondary">выполнено команд: {{ v.steps }}</span>
+              @if (v.lastInsn) {
+                <span class="badge badge-secondary mono">{{ v.lastInsn }}</span>
+              }
+              @if (v.halted) {
+                <span class="badge badge-success">остановлен</span>
+              }
+            </div>
+          } @else {
+            <p class="muted">Исправьте ошибки в программе — тогда её можно запустить.</p>
+          }
+        </div>
+      </div>
+
+      @if (result(); as r) {
+        <div class="alert pop-in" [class.alert-success]="r.ok" role="status">
+          <div class="alert-body">
+            <p class="alert-title">{{ r.ok ? 'Задание выполнено!' : 'Пока не то' }}</p>
+            <p class="alert-description">{{ r.message }}</p>
+          </div>
+          @if (r.ok && index() < tasks.length - 1) {
+            <button
+              type="button"
+              class="btn btn-default btn-sm alert-action"
+              (click)="selectTask(index() + 1)"
+            >
+              Следующее
+            </button>
+          }
+        </div>
+      }
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Периферия</h3>
+          <p class="card-description">
+            Устройства подключены к тем же шинам, что и память, и видны программе как обычные
+            адреса. Запись или чтение по такому адресу — это общение с устройством.
+          </p>
+        </div>
+        <div class="card-content">
+          <div class="dev-row">
+            <span class="dev-name">Светодиоды</span>
+            <span class="leds" aria-label="Светодиоды">
+              @for (i of ledIndexes; track i) {
+                <span class="led" [class.on]="ledOn(i)" [title]="'LED' + i">{{ i }}</span>
+              }
+            </span>
+          </div>
+          <div class="dev-row">
+            <span class="dev-name">Переключатели</span>
+            <span class="leds" aria-label="Переключатели">
+              @for (i of ledIndexes; track i) {
+                <span class="sw" [class.on]="switchOn(i)" [title]="'SW' + i">{{ i }}</span>
+              }
+            </span>
+          </div>
+          <div class="dev-row">
+            <span class="dev-name">Таймер</span>
+            <span class="mono">{{ view()?.steps ?? 0 }}</span>
+          </div>
+          <p class="data-title">Консоль (UART):</p>
+          <pre class="console mono">{{ view()?.uart ?? '' }}<span class="caret">▮</span></pre>
+          <table class="ref mmio">
+            <tbody>
+              @for (m of mmio; track m.addr) {
+                <tr>
+                  <td class="left mono">0x{{ m.addr.toString(16) }}</td>
+                  <td class="left">
+                    <strong>{{ m.name }}</strong> — {{ m.note }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header rv-bar">
+          <h3 class="card-title">Память</h3>
+          <div class="engine" role="group" aria-label="Окно памяти">
+            @for (w of windows; track w.id) {
+              <button
+                type="button"
+                class="seg"
+                [class.on]="windowId() === w.id"
+                (click)="windowId.set(w.id)"
+              >
+                {{ w.title }}
+              </button>
+            }
+          </div>
+        </div>
+        <div class="card-content">
+          <p class="card-description mem-note">
+            Окно в 256 байт. Зелёным — записанный последним байт, синим — прочитанный. Слова лежат
+            «младшим байтом вперёд» (little-endian).
+          </p>
+          <div class="mem mono">
+            <div class="mem-head">
+              <span></span>
+              @for (c of grid()[0].cells; track c.addr; let i = $index) {
+                <span>{{ i.toString(16).toUpperCase() }}</span>
+              }
+              <span class="ascii-head">текст</span>
+            </div>
+            @for (row of grid(); track row.addr) {
+              <div class="mem-row">
+                <span class="addr">{{ hexAddr(row.addr) }}</span>
+                @for (c of row.cells; track c.addr) {
+                  <span class="cell" [class]="cellClass(c)" [title]="'адрес 0x' + hexAddr(c.addr)">
+                    {{ c.hex }}
+                  </span>
+                }
+                <span class="ascii">
+                  @for (c of row.cells; track c.addr) {
+                    <span [class.dot]="c.char === '·'">{{ c.char }}</span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ Справочник ============ -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Справочник: команды RISC-V (RV32IM)</h3>
+      <p class="card-description">
+        32 регистра по 32 бита; x0 (zero) всегда равен нулю. У регистров есть «ABI-имена»: a0…a7 —
+        аргументы и результат, t0…t6 — временные, s0…s11 — «неприкосновенные» (функция обязана
+        вернуть их как были), ra — адрес возврата, sp — стек. Комментарии — после «#». Метки —
+        «имя:».
+      </p>
+    </div>
+    <div class="card-content">
+      <table class="ref">
+        <thead>
+          <tr>
+            <th class="left">команда</th>
+            <th class="left">пример</th>
+            <th class="left">что делает</th>
+            <th>формат</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (o of ops; track o.mnemonic) {
+            <tr>
+              <td class="left mono">
+                <strong>{{ o.mnemonic }}</strong>
+              </td>
+              <td class="left mono">{{ o.example }}</td>
+              <td class="left">{{ o.meaning }}</td>
+              <td class="mono">{{ o.fmt }}{{ o.ext === 'M' ? ' · M' : '' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <h4 class="ref-sub">Псевдокоманды — сокращения, которые ассемблер разворачивает сам</h4>
+      <table class="ref">
+        <tbody>
+          @for (p of pseudo; track p.example) {
+            <tr>
+              <td class="left mono">
+                <strong>{{ p.example }}</strong>
+              </td>
+              <td class="left mono">= {{ p.becomes }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
