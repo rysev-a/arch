@@ -759,3 +759,101 @@
   font-size: 0.8125rem;
   line-height: 1.45;
 }
+
+/* ===================== Доска во весь экран ===================== */
+.board-card.fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  background: hsl(var(--background));
+}
+.board-card.fullscreen .card-description {
+  display: none;
+}
+.board-card.fullscreen .board-header {
+  flex-shrink: 0;
+  padding-block: 0.625rem;
+}
+.board-card.fullscreen .board-wrap {
+  flex: 1;
+  min-height: 0;
+  padding-top: 0.5rem;
+  display: flex;
+}
+.board-card.fullscreen .board-wrap > * {
+  flex: 1;
+  min-width: 0;
+}
+.board-card.fullscreen .board-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+.board-card.fullscreen .inspector {
+  min-height: 0;
+}
+.board-card.fullscreen .inspector > app-block-board,
+.board-card.fullscreen .inspector > app-circuit-view {
+  flex: 1;
+  min-height: 0;
+}
+
+.fs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  flex-shrink: 0;
+  padding: 0 1.5rem 0.5rem;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.fs-palette {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0;
+}
+.fs-palette .palette-item {
+  width: auto;
+  min-width: 0;
+  max-width: 15rem;
+  padding: 0.25rem 0.625rem;
+}
+.fs-palette .palette-svg {
+  width: 2.75rem;
+  height: auto;
+}
+.fs-palette .palette-sub {
+  font-size: 0.6875rem;
+}
+.fs-palette .palette-empty {
+  margin: 0;
+}
+.fs-status {
+  display: flex;
+  flex: 1;
+  min-width: 14rem;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  font-size: 0.8125rem;
+}
+.fs-ok {
+  color: hsl(var(--success));
+  font-weight: 600;
+}
+.fs-step {
+  color: hsl(var(--muted-foreground));
+  text-align: right;
+  max-width: 44rem;
+  line-height: 1.35;
+}
+.btn.fs-toggle {
+  white-space: nowrap;
+}

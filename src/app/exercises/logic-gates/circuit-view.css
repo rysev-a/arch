@@ -132,3 +132,10 @@
     animation: none;
   }
 }
+
+:host(.fill) {
+  height: 100%;
+}
+:host(.fill) .cv {
+  height: 100%;
+}

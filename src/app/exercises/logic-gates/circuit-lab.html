@@ -1,3 +1,68 @@
+<!-- палитра элементов: и в боковой панели, и в полноэкранном режиме -->
+<ng-template #paletteTpl>
+  @if (isBlocksMode()) {
+    @for (b of blockPalette(); track b.id) {
+      <button
+        type="button"
+        class="palette-item block"
+        [class.locked]="!b.available"
+        [title]="b.available ? b.summary : b.hint"
+        (click)="addBlock(b.id)"
+      >
+        <span class="palette-meta">
+          <span class="palette-name">{{ b.title }}</span>
+          <span class="palette-sub">
+            @if (b.available) {
+              {{ b.summary }}
+            } @else {
+              🔒 {{ b.hint }}
+            }
+          </span>
+        </span>
+      </button>
+    }
+  } @else {
+    @if (paletteGates().length === 0) {
+      <p class="palette-empty">В этом упражнении элементы не нужны — только провода.</p>
+    }
+    @for (t of paletteGates(); track t) {
+      <button
+        type="button"
+        class="palette-item"
+        [class.locked]="!isUnlocked(t)"
+        [title]="isUnlocked(t) ? '' : lockHint(t)"
+        (pointerdown)="startPlace($event, t)"
+        [attr.aria-label]="'Добавить элемент ' + t"
+      >
+        <svg viewBox="-12 0 96 48" class="palette-svg" aria-hidden="true" overflow="visible">
+          @if (extraArc(t) !== null) {
+            <path class="gate-extra" [attr.d]="extraArc(t)" />
+          }
+          <path class="gate-body" [attr.d]="bodyPath(t)" />
+          @if (bubbleCx(t) !== null) {
+            <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
+          }
+        </svg>
+        <span class="palette-meta">
+          <span class="palette-name">
+            {{ t }}
+            @if (isComposite(t) && isUnlocked(t)) {
+              <span class="badge badge-composite">составной</span>
+            }
+          </span>
+          <span class="palette-sub">
+            @if (isUnlocked(t)) {
+              {{ ruName(t) }}
+            } @else {
+              🔒 {{ lockHint(t) }}
+            }
+          </span>
+        </span>
+      </button>
+    }
+  }
+</ng-template>
+
 <div class="exercise">
   <!-- ===================== Боковая панель ===================== -->
   <aside class="side">
@@ -8,26 +73,7 @@
           <p class="card-description">Кликните — блок появится на доске</p>
         </div>
         <div class="card-content palette">
-          @for (b of blockPalette(); track b.id) {
-            <button
-              type="button"
-              class="palette-item block"
-              [class.locked]="!b.available"
-              [title]="b.available ? b.summary : b.hint"
-              (click)="addBlock(b.id)"
-            >
-              <span class="palette-meta">
-                <span class="palette-name">{{ b.title }}</span>
-                <span class="palette-sub">
-                  @if (b.available) {
-                    {{ b.summary }}
-                  } @else {
-                    🔒 {{ b.hint }}
-                  }
-                </span>
-              </span>
-            </button>
-          }
+          <ng-container [ngTemplateOutlet]="paletteTpl" />
         </div>
       </div>
     } @else {
@@ -37,44 +83,7 @@
           <p class="card-description">Перетащите на доску — или просто кликните</p>
         </div>
         <div class="card-content palette">
-          @if (paletteGates().length === 0) {
-            <p class="palette-empty">В этом упражнении элементы не нужны — только провода.</p>
-          }
-          @for (t of paletteGates(); track t) {
-            <button
-              type="button"
-              class="palette-item"
-              [class.locked]="!isUnlocked(t)"
-              [title]="isUnlocked(t) ? '' : lockHint(t)"
-              (pointerdown)="startPlace($event, t)"
-              [attr.aria-label]="'Добавить элемент ' + t"
-            >
-              <svg viewBox="-12 0 96 48" class="palette-svg" aria-hidden="true" overflow="visible">
-                @if (extraArc(t) !== null) {
-                  <path class="gate-extra" [attr.d]="extraArc(t)" />
-                }
-                <path class="gate-body" [attr.d]="bodyPath(t)" />
-                @if (bubbleCx(t) !== null) {
-                  <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
-                }
-              </svg>
-              <span class="palette-meta">
-                <span class="palette-name">
-                  {{ t }}
-                  @if (isComposite(t) && isUnlocked(t)) {
-                    <span class="badge badge-composite">составной</span>
-                  }
-                </span>
-                <span class="palette-sub">
-                  @if (isUnlocked(t)) {
-                    {{ ruName(t) }}
-                  } @else {
-                    🔒 {{ lockHint(t) }}
-                  }
-                </span>
-              </span>
-            </button>
-          }
+          <ng-container [ngTemplateOutlet]="paletteTpl" />
         </div>
       </div>
     }
@@ -203,10 +212,16 @@
     </div>
 
     <!-- Доска -->
-    <div class="card">
+    <div class="card board-card" [class.fullscreen]="fullscreen()">
       <div class="card-header board-header">
         <div>
-          <h3 class="card-title">Доска</h3>
+          <h3 class="card-title">
+            @if (fullscreen()) {
+              {{ exercise().title }}
+            } @else {
+              Доска
+            }
+          </h3>
           <p class="card-description">
             {{ boardHint() }}
           </p>
@@ -259,8 +274,49 @@
           <button type="button" class="btn btn-outline btn-sm" (click)="reset()">
             Очистить доску
           </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-sm fs-toggle"
+            (click)="toggleFullscreen()"
+            [title]="fullscreen() ? 'Вернуться (Esc)' : 'Развернуть доску на весь экран'"
+            [attr.aria-pressed]="fullscreen()"
+          >
+            {{ fullscreen() ? '⤡ Свернуть' : '⤢ Во весь экран' }}
+          </button>
         </div>
       </div>
+      @if (fullscreen()) {
+        <div class="fs-bar">
+          <div class="palette fs-palette">
+            <ng-container [ngTemplateOutlet]="paletteTpl" />
+          </div>
+          <div class="fs-status" role="status">
+            <span
+              class="badge"
+              [class.badge-success]="solved()"
+              [class.badge-secondary]="!solved()"
+            >
+              @if (isStepsMode()) {
+                Шаг {{ currentStepNo() }} / {{ totalSteps() }}
+              } @else {
+                {{ matched() }} / {{ exercise().target.length }}
+              }
+            </span>
+            @if (solved()) {
+              <span class="fs-ok">Схема работает!</span>
+              @if (currentIndex() < exercises().length - 1) {
+                <button type="button" class="btn btn-default btn-sm" (click)="next()">
+                  Следующее →
+                </button>
+              }
+            } @else if (isStepsMode() && exercise().steps?.[passedSteps()]; as step) {
+              <span class="fs-step">{{ step.text }}</span>
+            } @else {
+              <span class="fs-step">{{ exercise().task }}</span>
+            }
+          </div>
+        </div>
+      }
       <div class="card-content board-wrap">
         @if (isBlocksMode()) {
           @if (current(); as cur) {
@@ -317,6 +373,7 @@
               }
               @if (cur.solution && isBlockSolution(cur.solution)) {
                 <app-block-board
+                  [class.fill]="fullscreen()"
                   [iface]="cur.iface"
                   [library]="library()"
                   [instances]="cur.solution.instances"
@@ -328,6 +385,7 @@
                 />
               } @else if (cur.solution) {
                 <app-circuit-view
+                  [class.fill]="fullscreen()"
                   [gates]="cur.solution.gates"
                   [wires]="cur.solution.wires"
                   [iface]="cur.iface"
@@ -337,6 +395,7 @@
             </div>
           } @else {
             <app-block-board
+              [class.fill]="fullscreen()"
               [iface]="iface()"
               [library]="library()"
               [(instances)]="instances"

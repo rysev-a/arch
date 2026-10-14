@@ -11,6 +11,7 @@ import {
   untracked,
   viewChild,
 } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
 import { Router } from '@angular/router';
 import { TruthTable } from './truth-table';
 import { BlockBoard } from './block-board';
@@ -121,7 +122,7 @@ interface Level {
 
 @Component({
   selector: 'app-circuit-lab',
-  imports: [TruthTable, BlockBoard, CircuitView],
+  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
 })
@@ -153,6 +154,8 @@ export class CircuitLab {
   protected readonly library = signal<BlockLibrary>(createLibrary(SECTIONS));
   protected readonly inspectPath = signal<string[]>([]);
   protected readonly editUnlocked = signal(false);
+  /** доска развёрнута на весь экран */
+  protected readonly fullscreen = signal(false);
 
   /* ---------- упражнение и прогресс ---------- */
   protected readonly currentIndex = signal(0);
@@ -286,6 +289,7 @@ export class CircuitLab {
   private readonly cleanup = this.destroyRef.onDestroy(() => {
     clearTimeout(this.clockTimer);
     clearInterval(this.autoTimer);
+    document.documentElement.classList.remove('board-fullscreen');
   });
 
   /* ---------- вычисляемое ---------- */
@@ -581,6 +585,24 @@ export class CircuitLab {
     this.wires.update((list) => [...list, { id: uid('w'), from, to }]);
     this.afterEdit();
   }
+
+  /* ============================================================
+     Доска во весь экран
+     ============================================================ */
+
+  protected toggleFullscreen(): void {
+    this.fullscreen.update((v) => !v);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.fullscreen()) this.fullscreen.set(false);
+  }
+
+  /** Пока доска развёрнута, страница под ней не прокручивается */
+  private readonly fullscreenEffect = effect(() => {
+    document.documentElement.classList.toggle('board-fullscreen', this.fullscreen());
+  });
 
   /* ============================================================
      Блоки: палитра, «заглянуть внутрь», редактирование
@@ -931,8 +953,14 @@ export class CircuitLab {
 
   private toBoard(clientX: number, clientY: number): Point {
     const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
-    const scale = rect.width / BOARD_W;
-    return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+    // доска вписана в контейнер с сохранением пропорций: в полноэкранном режиме есть поля по краям
+    const scale = Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
+    const offsetX = (rect.width - BOARD_W * scale) / 2;
+    const offsetY = (rect.height - BOARD_H * scale) / 2;
+    return {
+      x: (clientX - rect.left - offsetX) / scale,
+      y: (clientY - rect.top - offsetY) / scale,
+    };
   }
 
   private clamp(v: number, min: number, max: number): number {

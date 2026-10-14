@@ -321,3 +321,8 @@ body {
 .pop-in {
   animation: pop-in 0.25s ease-out both;
 }
+
+/* доска развёрнута на весь экран — страница под ней не прокручивается */
+html.board-fullscreen {
+  overflow: hidden;
+}

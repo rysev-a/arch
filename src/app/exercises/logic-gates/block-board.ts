@@ -351,8 +351,14 @@ export class BlockBoard {
     const el = this.svg()?.nativeElement;
     if (!el) return { x: 0, y: 0 };
     const rect = el.getBoundingClientRect();
-    const scale = rect.width / this.W;
-    return { x: (clientX - rect.left) / scale, y: (clientY - rect.top) / scale };
+    // доска вписана в контейнер с сохранением пропорций (в полноэкранном режиме есть поля)
+    const scale = Math.min(rect.width / this.W, rect.height / this.height());
+    const offsetX = (rect.width - this.W * scale) / 2;
+    const offsetY = (rect.height - this.height() * scale) / 2;
+    return {
+      x: (clientX - rect.left - offsetX) / scale,
+      y: (clientY - rect.top - offsetY) / scale,
+    };
   }
 
   protected typeTitle(port: BlockPort): string {
