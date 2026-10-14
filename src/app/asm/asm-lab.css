@@ -1,0 +1,312 @@
+:host {
+  display: block;
+}
+.asm {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.asm-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .asm-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.asm-left,
+.asm-right {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+}
+.asm-bar {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+.asm-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.mono {
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+.muted {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+}
+
+/* ---------- задание ---------- */
+.stepper-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.step-chip {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.step-chip.current {
+  border-color: hsl(var(--primary));
+  color: hsl(var(--foreground));
+}
+.step-chip.solved {
+  background: hsl(var(--success));
+  border-color: hsl(var(--success));
+  color: hsl(var(--success-foreground));
+}
+.asm-hint {
+  margin: 0 0 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--accent) / 0.5);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ---------- редактор ---------- */
+.editor {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 18rem;
+  padding: 0.75rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  tab-size: 2;
+  resize: vertical;
+}
+.editor:focus {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 1px;
+}
+.asm-errors {
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.75rem 0.5rem 1.5rem;
+  border: 1px solid hsl(var(--destructive) / 0.5);
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--destructive) / 0.08);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ---------- машинный код ---------- */
+.listing-wrap {
+  overflow-x: auto;
+}
+.listing,
+.ref {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+.listing th,
+.ref th {
+  padding: 0.25rem 0.5rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+  font-weight: 500;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid hsl(var(--border));
+}
+.listing td,
+.ref td {
+  padding: 0.25rem 0.5rem;
+  text-align: center;
+  border-top: 1px solid hsl(var(--border) / 0.6);
+}
+.left {
+  text-align: left !important;
+}
+.listing tbody tr {
+  cursor: pointer;
+}
+.listing tbody tr:hover {
+  background: hsl(var(--accent) / 0.4);
+}
+.listing tr.current {
+  background: hsl(var(--primary) / 0.12);
+  box-shadow: inset 3px 0 0 hsl(var(--primary));
+}
+.listing tr.selected td.f-op,
+.listing tr.selected td.f-a,
+.listing tr.selected td.f-b,
+.listing tr.selected td.f-c {
+  font-weight: 700;
+}
+.f-op {
+  color: hsl(280 70% 62%);
+}
+.f-a {
+  color: hsl(200 80% 55%);
+}
+.f-b {
+  color: hsl(150 60% 45%);
+}
+.f-c {
+  color: hsl(30 85% 55%);
+}
+.asm-explain {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: hsl(var(--muted-foreground));
+}
+
+/* ---------- регистры ---------- */
+.regs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.reg {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+.reg.changed {
+  border-color: hsl(var(--success) / 0.7);
+  background: hsl(var(--success) / 0.12);
+}
+.reg-name {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: hsl(var(--muted-foreground));
+}
+.reg-val {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.reg-hex {
+  font-size: 0.6875rem;
+  color: hsl(var(--muted-foreground));
+}
+.status {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+}
+
+/* ---------- диск ---------- */
+.regions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.625rem;
+}
+.region-chip {
+  padding: 0.0625rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid hsl(var(--border));
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+.disk {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow-x: auto;
+  font-size: 0.75rem;
+}
+.disk-head,
+.disk-row {
+  display: grid;
+  grid-template-columns: 1.6rem repeat(16, minmax(1.45rem, 1fr)) 8.5rem;
+  gap: 1px;
+  align-items: center;
+}
+.disk-head {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+  text-align: center;
+}
+.addr {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.6875rem;
+}
+.cell {
+  padding: 0.125rem 0;
+  text-align: center;
+  border-radius: 3px;
+  background: hsl(var(--muted) / 0.35);
+  transition: background-color 0.2s ease;
+}
+.cell.rg0,
+.region-chip.rg0 {
+  border-bottom: 2px solid hsl(200 80% 55% / 0.8);
+}
+.cell.rg1,
+.region-chip.rg1 {
+  border-bottom: 2px solid hsl(150 60% 45% / 0.8);
+}
+.cell.rg2,
+.region-chip.rg2 {
+  border-bottom: 2px solid hsl(280 70% 62% / 0.8);
+}
+.cell.changed {
+  background: hsl(var(--warning) / 0.3);
+}
+.cell.read {
+  background: hsl(210 90% 55% / 0.35);
+}
+.cell.written {
+  background: hsl(var(--success) / 0.55);
+  font-weight: 700;
+}
+.ascii {
+  display: flex;
+  padding-left: 0.5rem;
+  letter-spacing: 0.04em;
+  color: hsl(var(--foreground));
+}
+.ascii span {
+  flex: 1;
+  text-align: center;
+}
+.ascii .dot {
+  color: hsl(var(--muted-foreground) / 0.5);
+}
+.ascii-head {
+  text-align: left;
+  padding-left: 0.5rem;
+}
+
+/* ---------- справочник ---------- */
+.ref-sub {
+  margin: 1rem 0 0.375rem;
+  font-size: 0.8125rem;
+  color: hsl(var(--muted-foreground));
+  font-weight: 600;
+}

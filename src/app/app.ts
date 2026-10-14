@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { runDemoIfRequested } from './demo';
-import { ROADMAP, SECTIONS } from './sections/sections';
+import { EXTRA_PAGES, ROADMAP, SECTIONS } from './sections/sections';
 
 @Component({
   selector: 'app-root',
@@ -12,6 +12,7 @@ import { ROADMAP, SECTIONS } from './sections/sections';
 export class App {
   protected readonly sections = SECTIONS;
   protected readonly roadmap = ROADMAP;
+  protected readonly extraPages = EXTRA_PAGES;
 
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
 

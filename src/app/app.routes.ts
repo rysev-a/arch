@@ -9,6 +9,11 @@ export const routes: Routes = [
     data: { slug: s.slug },
     title: `${s.title} — Как работает процессор`,
   })),
+  {
+    path: 'asm',
+    loadComponent: () => import('./asm/asm-lab').then((m) => m.AsmLab),
+    title: 'Ассемблер — Как работает процессор',
+  },
   // раздел «Мультиплексоры и защёлки» разделился на два
   { path: 'mux-latches', redirectTo: 'mux' },
   { path: '**', redirectTo: SECTIONS[0].slug },

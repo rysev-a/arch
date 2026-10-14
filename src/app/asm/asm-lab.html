@@ -1,0 +1,292 @@
+<div class="asm">
+  <!-- ============ Условие ============ -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">
+        Задание {{ index() + 1 }} из {{ tasks.length }} · {{ task().title }}
+      </h3>
+      <p class="card-description">{{ task().text }}</p>
+    </div>
+    <div class="card-content stepper-row">
+      @for (t of tasks; track t.id; let i = $index) {
+        <button
+          type="button"
+          class="step-chip"
+          [class.current]="i === index()"
+          [class.solved]="solved().has(t.id)"
+          [title]="i + 1 + '. ' + t.title"
+          (click)="selectTask(i)"
+        >
+          @if (solved().has(t.id)) {
+            ✓
+          } @else {
+            {{ i + 1 }}
+          }
+        </button>
+      }
+    </div>
+  </div>
+
+  <div class="asm-grid">
+    <!-- ============ Редактор и машинный код ============ -->
+    <section class="asm-left">
+      <div class="card">
+        <div class="card-header asm-bar">
+          <h3 class="card-title">Программа</h3>
+          <div class="asm-buttons">
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="hintShown.set(!hintShown())"
+            >
+              {{ hintShown() ? 'Скрыть подсказку' : 'Подсказка' }}
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="showSolution()">
+              Показать решение
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="restoreStarter()">
+              Начать заново
+            </button>
+          </div>
+        </div>
+        <div class="card-content">
+          @if (hintShown()) {
+            <p class="asm-hint pop-in">{{ task().hint }}</p>
+          }
+          <textarea
+            class="editor"
+            spellcheck="false"
+            rows="16"
+            [value]="source()"
+            (input)="onInput($event)"
+            (keydown)="onKey($event)"
+            aria-label="Текст программы на ассемблере"
+          ></textarea>
+
+          @if (asm().errors.length > 0) {
+            <ul class="asm-errors" role="alert">
+              @for (e of asm().errors; track $index) {
+                <li>
+                  <strong>Строка {{ e.line }}:</strong> {{ e.message }}
+                </li>
+              }
+            </ul>
+          }
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Машинный код</h3>
+          <p class="card-description">
+            Что ассемблер сделал из вашей программы: каждая команда — одно 16-битное слово из полей
+            «код · A · B · C». Нажмите на строку, чтобы разобрать её по битам.
+          </p>
+        </div>
+        <div class="card-content listing-wrap">
+          @if (listing().length === 0) {
+            <p class="muted">Команд пока нет.</p>
+          } @else {
+            <table class="listing">
+              <thead>
+                <tr>
+                  <th>адрес</th>
+                  <th>hex</th>
+                  <th>код</th>
+                  <th>A</th>
+                  <th>B</th>
+                  <th>C</th>
+                  <th class="left">команда</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (l of listing(); track l.addr) {
+                  <tr
+                    [class.current]="l.current"
+                    [class.selected]="selectedLine() === l.addr"
+                    (click)="selectedLine.set(selectedLine() === l.addr ? null : l.addr)"
+                  >
+                    <td>{{ l.addr }}</td>
+                    <td class="mono">{{ l.wordHex }}</td>
+                    <td class="mono f-op">{{ l.bits.opcode }}</td>
+                    <td class="mono f-a">{{ l.bits.a }}</td>
+                    <td class="mono f-b">{{ l.bits.b }}</td>
+                    <td class="mono f-c">{{ l.bits.c }}</td>
+                    <td class="left mono">{{ l.text }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+            @if (selectedLine() !== null) {
+              <p class="asm-explain pop-in">
+                Первые четыре бита — <strong>код операции</strong>: по ним процессор понимает, что
+                делать. Дальше поля A, B и C: в зависимости от команды это номера регистров, число
+                или смещение перехода. Подробности — в справочнике ниже.
+              </p>
+            }
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Машина: регистры, диск ============ -->
+    <section class="asm-right">
+      <div class="card">
+        <div class="card-header asm-bar">
+          <h3 class="card-title">Процессор</h3>
+          <div class="asm-buttons">
+            <button
+              type="button"
+              class="btn btn-default btn-sm"
+              (click)="step()"
+              [disabled]="!canStep()"
+            >
+              Шаг ▸
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="run()"
+              [disabled]="!canStep()"
+            >
+              Выполнить
+            </button>
+            <button type="button" class="btn btn-outline btn-sm" (click)="reset()">Сбросить</button>
+          </div>
+        </div>
+        <div class="card-content">
+          @if (view(); as v) {
+            <div class="regs">
+              @for (name of regNames; track name; let i = $index) {
+                <div class="reg" [class.changed]="v.lastReg === i">
+                  <span class="reg-name">{{ name }}</span>
+                  <span class="reg-val mono">{{ v.regs[i] }}</span>
+                  <span class="reg-hex mono">0x{{ hexByte(v.regs[i]) }}</span>
+                </div>
+              }
+            </div>
+            <div class="status">
+              <span class="badge badge-secondary">следующая команда: {{ v.pc }}</span>
+              <span class="badge badge-secondary">выполнено шагов: {{ v.steps }}</span>
+              @if (v.halted) {
+                <span class="badge badge-success">остановлен (hlt)</span>
+              }
+            </div>
+          } @else {
+            <p class="muted">Исправьте ошибки в программе — тогда её можно запустить.</p>
+          }
+        </div>
+      </div>
+
+      @if (result(); as r) {
+        <div class="alert pop-in" [class.alert-success]="r.ok" role="status">
+          <div class="alert-body">
+            <p class="alert-title">{{ r.ok ? 'Задание выполнено!' : 'Пока не то' }}</p>
+            <p class="alert-description">{{ r.message }}</p>
+          </div>
+          @if (r.ok && index() < tasks.length - 1) {
+            <button
+              type="button"
+              class="btn btn-default btn-sm alert-action"
+              (click)="selectTask(index() + 1)"
+            >
+              Следующее
+            </button>
+          }
+        </div>
+      }
+
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Виртуальный диск</h3>
+          <p class="card-description">
+            256 байт памяти. Жёлтым подсвечены байты, которые ваша программа изменила; зелёным —
+            записанный последним, синим — прочитанный.
+          </p>
+        </div>
+        <div class="card-content">
+          <div class="regions">
+            @for (r of task().regions; track r.name; let i = $index) {
+              <span class="region-chip" [class]="'region-chip rg' + i">
+                {{ r.name }} · {{ regionHex(r.from) }}
+              </span>
+            }
+          </div>
+          <div class="disk mono">
+            <div class="disk-head">
+              <span></span>
+              @for (c of grid()[0].cells; track c.addr) {
+                <span>{{ c.addr.toString(16).toUpperCase() }}</span>
+              }
+              <span class="ascii-head">текст</span>
+            </div>
+            @for (row of grid(); track row.addr) {
+              <div class="disk-row">
+                <span class="addr">{{ hexByte(row.addr) }}</span>
+                @for (c of row.cells; track c.addr) {
+                  <span class="cell" [class]="cellClass(c)" [title]="'адрес 0x' + hexByte(c.addr)">
+                    {{ c.hex }}
+                  </span>
+                }
+                <span class="ascii">
+                  @for (c of row.cells; track c.addr) {
+                    <span [class.dot]="c.char === '·'">{{ c.char }}</span>
+                  }
+                </span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============ Справочник ============ -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Справочник: команды процессора Мини-8</h3>
+      <p class="card-description">
+        8 регистров r0…r7 (r0 всегда равен нулю), числа — байты 0…255. Команда занимает 16 бит:
+        <span class="mono">код(4) · A(3) · B(3) · C(6)</span>. Комментарии — после «;». Метки —
+        «имя:» в начале строки; константы — «.equ ИМЯ, число».
+      </p>
+    </div>
+    <div class="card-content">
+      <table class="ref">
+        <thead>
+          <tr>
+            <th class="left">команда</th>
+            <th class="left">пример</th>
+            <th class="left">что делает</th>
+            <th>код</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (o of ops; track o.mnemonic) {
+            <tr>
+              <td class="left mono">
+                <strong>{{ o.mnemonic }}</strong>
+              </td>
+              <td class="left mono">{{ o.example }}</td>
+              <td class="left">{{ o.meaning }}</td>
+              <td class="mono">{{ o.opcode.toString(2).padStart(4, '0') }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+      <h4 class="ref-sub">Псевдокоманды — сокращения, которые ассемблер разворачивает сам</h4>
+      <table class="ref">
+        <tbody>
+          @for (p of pseudo; track p.name) {
+            <tr>
+              <td class="left mono">
+                <strong>{{ p.example }}</strong>
+              </td>
+              <td class="left mono">= {{ p.becomes }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

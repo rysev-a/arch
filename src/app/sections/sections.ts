@@ -93,3 +93,8 @@ export function sectionBySlug(slug: string): Section {
 
 /** Разделы в планах — видны в навигации, но пока недоступны */
 export const ROADMAP: readonly { title: string; description: string }[] = [];
+
+/** Страницы вне схем: пока одна — ассемблер на готовом процессоре */
+export const EXTRA_PAGES: readonly { slug: string; title: string }[] = [
+  { slug: 'asm', title: 'Ассемблер' },
+];

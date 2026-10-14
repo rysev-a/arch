@@ -63,6 +63,11 @@
           s.title
         }}</a>
       }
+      @for (p of extraPages; track p.slug) {
+        <a class="nav-link" [routerLink]="['/' + p.slug]" routerLinkActive="active">{{
+          p.title
+        }}</a>
+      }
       @for (r of roadmap; track r.title) {
         <span class="nav-link soon" [title]="r.description + ' — скоро'">
           {{ r.title }}
