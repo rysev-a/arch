@@ -1,0 +1,208 @@
+<svg
+  #svg
+  class="bb"
+  [class.readonly]="readonly()"
+  [attr.viewBox]="'0 0 ' + W + ' ' + height()"
+  role="img"
+  aria-label="Доска с блоками и шинами"
+>
+  <defs>
+    <pattern id="bb-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
+    </pattern>
+  </defs>
+  <rect class="bb-bg" [attr.width]="W" [attr.height]="height()" rx="10" fill="url(#bb-dots)" />
+
+  <!-- ===== шины ===== -->
+  @for (w of wiresView(); track w.id) {
+    <g class="bwire" [class.bus]="w.width > 1" (pointerdown)="removeWire(w.id)">
+      @if (!readonly()) {
+        <title>Клик — удалить шину</title>
+      }
+      <path class="bwire-hit" [attr.d]="w.d" />
+      <path class="bwire-line" [class]="'bwire-line ' + w.cls" [attr.d]="w.d" />
+      <g class="bwire-tag" [attr.transform]="'translate(' + w.mx + ' ' + w.my + ')'">
+        <rect
+          [attr.x]="-(w.text.length * 3.6 + 5)"
+          y="-8"
+          [attr.width]="w.text.length * 7.2 + 10"
+          height="16"
+          rx="8"
+        />
+        <text y="3.5" text-anchor="middle">{{ w.text }}</text>
+      </g>
+    </g>
+  }
+
+  <!-- ===== блоки и колонки портов упражнения ===== -->
+  @for (box of boxes(); track box.node + box.kind) {
+    <g
+      class="bbox"
+      [class.top]="box.kind !== 'block'"
+      [attr.transform]="'translate(' + box.x + ' ' + box.y + ')'"
+    >
+      <rect class="bbox-rect" [attr.width]="box.w" [attr.height]="box.h" rx="10" />
+
+      @if (box.kind === 'block') {
+        <rect
+          class="bbox-head"
+          [attr.width]="box.w"
+          height="28"
+          rx="10"
+          (pointerdown)="boxDown($event, box)"
+        />
+        <text class="bbox-title" x="10" y="18" (pointerdown)="boxDown($event, box)">
+          {{ box.title }}
+        </text>
+        <g
+          class="bbtn inspect"
+          [attr.transform]="'translate(' + (box.w - (readonly() ? 14 : 36)) + ' 14)'"
+          (pointerdown)="$event.stopPropagation()"
+          (click)="inspect.emit(box.node)"
+        >
+          <title>Заглянуть внутрь</title>
+          <circle r="9" />
+          <circle class="lens" r="3.2" cx="-0.8" cy="-0.8" />
+          <path class="lens" d="M1.6 1.6 L4.6 4.6" />
+        </g>
+        @if (!readonly()) {
+          <g
+            class="bbtn del"
+            [attr.transform]="'translate(' + (box.w - 14) + ' 14)'"
+            (pointerdown)="$event.stopPropagation()"
+            (click)="removeInstance(box.node, $event)"
+          >
+            <title>Убрать блок с доски</title>
+            <circle r="9" />
+            <path d="M-3 -3 L3 3 M3 -3 L-3 3" />
+          </g>
+        }
+      } @else {
+        <text class="bbox-title top" x="10" y="18">{{ box.title }}</text>
+      }
+
+      @for (row of box.rows; track row.key) {
+        <g
+          class="brow"
+          [class.dim]="dim(row)"
+          [class.hover]="hover() === row.key"
+          [attr.transform]="'translate(0 ' + row.y + ')'"
+        >
+          <!-- подпись порта, раскрытие поля -->
+          @if (row.side === 'in') {
+            @if (row.expandable) {
+              <g class="caret" (pointerdown)="toggleExpand(row, $event)">
+                <title>{{ row.expanded ? 'Свернуть поля' : 'Показать поля' }}</title>
+                <rect [attr.x]="8 + row.depth * 10" y="-9" width="14" height="18" rx="4" />
+                <text [attr.x]="15 + row.depth * 10" y="4" text-anchor="middle">
+                  {{ row.expanded ? '▾' : '▸' }}
+                </text>
+              </g>
+            }
+            <text class="blabel" [attr.x]="(row.expandable ? 26 : 12) + row.depth * 10" y="4">
+              {{ row.name }}
+              <tspan class="btype">: {{ row.type }}</tspan>
+            </text>
+          } @else {
+            @if (row.expandable) {
+              <g class="caret" (pointerdown)="toggleExpand(row, $event)">
+                <title>{{ row.expanded ? 'Свернуть поля' : 'Показать поля' }}</title>
+                <rect [attr.x]="box.w - 22 - row.depth * 10" y="-9" width="14" height="18" rx="4" />
+                <text [attr.x]="box.w - 15 - row.depth * 10" y="4" text-anchor="middle">
+                  {{ row.expanded ? '▾' : '▸' }}
+                </text>
+              </g>
+            }
+            @if (box.kind !== 'top-in') {
+              <text
+                class="blabel out"
+                [attr.x]="box.w - (row.expandable ? 26 : 12) - row.depth * 10"
+                y="4"
+                text-anchor="end"
+              >
+                {{ row.name }}
+                <tspan class="btype">: {{ row.type }}</tspan>
+              </text>
+            } @else {
+              <text class="blabel" [attr.x]="10 + row.depth * 8" y="4">
+                {{ row.name }}
+              </text>
+            }
+          }
+
+          <!-- значения у колонок упражнения -->
+          @if (box.kind === 'top-in') {
+            @for (node of row.nodes; track node; let i = $index) {
+              <g
+                class="bchip"
+                [class.v1]="bitValue(node) === 1"
+                [class.clk]="isClock(node)"
+                [class.static]="readonly()"
+                [attr.transform]="
+                  'translate(' + (chipX(row, i, box.w) - (row.expandable ? 18 : 0)) + ' 0)'
+                "
+                (pointerdown)="$event.stopPropagation()"
+                (click)="readonly() || toggle.emit(node)"
+              >
+                @if (!readonly()) {
+                  <title>Клик — переключить</title>
+                }
+                <rect x="0" y="-9" width="18" height="18" rx="5" />
+                <text x="9" y="4" text-anchor="middle">{{ bitValue(node) ?? '?' }}</text>
+              </g>
+            }
+          } @else if (box.kind === 'top-out') {
+            <g
+              class="bchip out"
+              [attr.transform]="
+                'translate(' + (box.w - 8 - Math.max(18, row.nodes.length * 8 + 8)) + ' 0)'
+              "
+            >
+              <rect
+                x="0"
+                y="-9"
+                [attr.width]="Math.max(18, row.nodes.length * 8 + 8)"
+                height="18"
+                rx="5"
+              />
+              <text
+                [attr.x]="Math.max(18, row.nodes.length * 8 + 8) / 2"
+                y="4"
+                text-anchor="middle"
+              >
+                {{ rowText(row) }}
+              </text>
+            </g>
+          }
+
+          <!-- пин -->
+          <g
+            class="bpin"
+            [attr.data-pin]="row.key"
+            (pointerenter)="pinEnter(row)"
+            (pointerleave)="pinLeave(row)"
+          >
+            <title>{{ row.name }}: {{ row.type }}</title>
+            <circle
+              class="bpin-hit"
+              [attr.cx]="row.side === 'in' ? 0 : box.w"
+              cy="0"
+              r="12"
+              (pointerdown)="pinDown($event, row)"
+            />
+            <circle
+              class="bpin-dot"
+              [attr.cx]="row.side === 'in' ? 0 : box.w"
+              cy="0"
+              [attr.r]="row.nodes.length > 1 ? 6.5 : 5"
+            />
+          </g>
+        </g>
+      }
+    </g>
+  }
+
+  @if (preview(); as p) {
+    <path class="bwire-preview" [class.ok]="p.ok" [attr.d]="p.d" />
+  }
+</svg>

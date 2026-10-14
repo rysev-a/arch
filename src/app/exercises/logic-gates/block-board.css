@@ -1,0 +1,239 @@
+:host {
+  display: block;
+}
+
+.bb {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--muted) / 0.3);
+}
+
+.grid-dot {
+  fill: hsl(var(--muted-foreground) / 0.22);
+}
+
+/* ---------- блоки ---------- */
+.bbox-rect {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+  stroke-width: 1.5;
+}
+.bbox.top .bbox-rect {
+  fill: hsl(var(--card) / 0.6);
+  stroke-dasharray: 4 4;
+}
+.bbox-head {
+  fill: hsl(var(--muted) / 0.7);
+  cursor: grab;
+}
+.bb.readonly .bbox-head {
+  cursor: default;
+}
+.bbox-title {
+  fill: hsl(var(--foreground));
+  font-size: 12.5px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.bbox-title.top {
+  fill: hsl(var(--muted-foreground));
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.bbtn {
+  cursor: pointer;
+}
+.bbtn circle {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+}
+.bbtn:hover circle {
+  fill: hsl(var(--accent));
+  stroke: hsl(var(--primary) / 0.6);
+}
+.bbtn.del path {
+  stroke: hsl(var(--muted-foreground));
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  fill: none;
+}
+.bbtn.del:hover circle {
+  stroke: hsl(var(--destructive));
+}
+.bbtn .lens {
+  fill: none;
+  stroke: hsl(var(--muted-foreground));
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* ---------- строки портов ---------- */
+.blabel {
+  fill: hsl(var(--foreground));
+  font-size: 11.5px;
+  font-weight: 600;
+  pointer-events: none;
+}
+.btype {
+  fill: hsl(var(--muted-foreground));
+  font-weight: 500;
+  font-size: 10px;
+}
+.brow.dim {
+  opacity: 0.28;
+}
+.caret {
+  cursor: pointer;
+}
+.caret rect {
+  fill: transparent;
+}
+.caret:hover rect {
+  fill: hsl(var(--accent));
+}
+.caret text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 11px;
+  pointer-events: none;
+}
+
+.bpin-hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+.bpin-dot {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--warning));
+  stroke-width: 2;
+  pointer-events: none;
+  transition: stroke 0.15s ease;
+}
+.brow.hover .bpin-dot {
+  stroke: hsl(var(--success));
+  fill: hsl(var(--success) / 0.3);
+}
+.bb.readonly .bpin-hit {
+  cursor: default;
+}
+
+/* ---------- значения у колонок упражнения ---------- */
+.bchip rect {
+  fill: hsl(var(--muted));
+  stroke: hsl(var(--border));
+  transition: fill 0.15s ease;
+}
+.bchip text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.bchip:not(.static) {
+  cursor: pointer;
+}
+.bchip:not(.static):hover rect {
+  stroke: hsl(var(--primary) / 0.6);
+}
+.bchip.v1 rect {
+  fill: hsl(var(--success));
+  stroke: hsl(var(--success) / 0.6);
+}
+.bchip.v1 text {
+  fill: hsl(var(--success-foreground));
+}
+.bchip.clk rect {
+  stroke: hsl(var(--primary) / 0.7);
+  stroke-width: 1.8;
+}
+.bchip.out text {
+  fill: hsl(var(--foreground));
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ---------- шины ---------- */
+.bwire-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  cursor: pointer;
+}
+.bb.readonly .bwire-hit {
+  cursor: default;
+}
+.bwire-line {
+  fill: none;
+  stroke-linecap: round;
+  stroke-width: 2.5;
+  pointer-events: none;
+  transition: stroke 0.15s ease;
+}
+.bwire.bus .bwire-line {
+  stroke-width: 5;
+}
+.bwire-line.v1 {
+  stroke: hsl(var(--success));
+  stroke-dasharray: 7 5;
+  animation: bwire-flow 0.5s linear infinite;
+}
+.bwire-line.v0 {
+  stroke: hsl(var(--muted-foreground) / 0.55);
+}
+.bwire-line.vx {
+  stroke: hsl(var(--warning));
+  stroke-dasharray: 3 5;
+}
+.bwire-line.bus {
+  stroke: hsl(var(--primary) / 0.55);
+}
+.bwire-line.bus.vx {
+  stroke: hsl(var(--warning));
+  stroke-dasharray: 3 5;
+}
+.bwire:hover .bwire-line {
+  stroke: hsl(var(--destructive));
+  animation: none;
+}
+.bb.readonly .bwire:hover .bwire-line {
+  stroke-width: 3.5;
+}
+.bwire-tag rect {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+}
+.bwire-tag text {
+  fill: hsl(var(--foreground));
+  font-size: 10.5px;
+  font-weight: 700;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  pointer-events: none;
+}
+.bwire-preview {
+  fill: none;
+  stroke: hsl(var(--muted-foreground));
+  stroke-width: 3;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.bwire-preview.ok {
+  stroke: hsl(var(--success));
+}
+
+@keyframes bwire-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bwire-line.v1 {
+    animation: none;
+  }
+}

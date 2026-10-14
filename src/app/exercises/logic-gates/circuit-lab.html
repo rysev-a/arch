@@ -1,0 +1,806 @@
+<div class="exercise">
+  <!-- ===================== Боковая панель ===================== -->
+  <aside class="side">
+    @if (isBlocksMode()) {
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Блоки</h3>
+          <p class="card-description">Кликните — блок появится на доске</p>
+        </div>
+        <div class="card-content palette">
+          @for (b of blockPalette(); track b.id) {
+            <button
+              type="button"
+              class="palette-item block"
+              [class.locked]="!b.available"
+              [title]="b.available ? b.summary : b.hint"
+              (click)="addBlock(b.id)"
+            >
+              <span class="palette-meta">
+                <span class="palette-name">{{ b.title }}</span>
+                <span class="palette-sub">
+                  @if (b.available) {
+                    {{ b.summary }}
+                  } @else {
+                    🔒 {{ b.hint }}
+                  }
+                </span>
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    } @else {
+      <div class="card">
+        <div class="card-header">
+          <h3 class="card-title">Элементы</h3>
+          <p class="card-description">Перетащите на доску — или просто кликните</p>
+        </div>
+        <div class="card-content palette">
+          @if (paletteGates().length === 0) {
+            <p class="palette-empty">В этом упражнении элементы не нужны — только провода.</p>
+          }
+          @for (t of paletteGates(); track t) {
+            <button
+              type="button"
+              class="palette-item"
+              [class.locked]="!isUnlocked(t)"
+              [title]="isUnlocked(t) ? '' : lockHint(t)"
+              (pointerdown)="startPlace($event, t)"
+              [attr.aria-label]="'Добавить элемент ' + t"
+            >
+              <svg viewBox="-12 0 96 48" class="palette-svg" aria-hidden="true" overflow="visible">
+                @if (extraArc(t) !== null) {
+                  <path class="gate-extra" [attr.d]="extraArc(t)" />
+                }
+                <path class="gate-body" [attr.d]="bodyPath(t)" />
+                @if (bubbleCx(t) !== null) {
+                  <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
+                }
+              </svg>
+              <span class="palette-meta">
+                <span class="palette-name">
+                  {{ t }}
+                  @if (isComposite(t) && isUnlocked(t)) {
+                    <span class="badge badge-composite">составной</span>
+                  }
+                </span>
+                <span class="palette-sub">
+                  @if (isUnlocked(t)) {
+                    {{ ruName(t) }}
+                  } @else {
+                    🔒 {{ lockHint(t) }}
+                  }
+                </span>
+              </span>
+            </button>
+          }
+        </div>
+      </div>
+    }
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Как играть</h3>
+      </div>
+      <div class="card-content">
+        @if (isBlocksMode()) {
+          <ol class="steps">
+            <li>Кликните блок в панели — он появится на доске. Блок можно двигать за заголовок.</li>
+            <li>
+              Потяните от порта к порту — получится шина. Подходят только порты того же типа,
+              остальные приглушатся.
+            </li>
+            <li>Кнопка ▸ у порта раскрывает его поля — провод можно тянуть от отдельного поля.</li>
+            <li>
+              Кнопка с лупой на блоке показывает его внутренность — схему, которую вы собрали.
+            </li>
+          </ol>
+        } @else {
+          <ol class="steps">
+            <li>Перетащите элемент из панели на доску.</li>
+            <li>Потяните за круглый контакт и отпустите на другом контакте — получится провод.</li>
+            <li>Клик по проводу удаляет его, крестик на элементе — удаляет элемент.</li>
+            <li>Щёлкайте по входам, чтобы менять 0 и 1, и следите за таблицей или сценарием.</li>
+          </ol>
+        }
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Обозначения</h3>
+      </div>
+      <div class="card-content">
+        <ul class="legend">
+          <li><span class="dot v1"></span>сигнал 1 — по проводу «бежит ток»</li>
+          <li><span class="dot v0"></span>сигнал 0</li>
+          <li><span class="dot vx"></span>вход ни к чему не подключён</li>
+        </ul>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== Основная колонка ===================== -->
+  <section class="main">
+    <!-- Упражнение и прогресс -->
+    <div class="card">
+      <div class="card-header exercise-head">
+        <div class="exercise-head-text">
+          <h3 class="card-title">
+            Упражнение {{ currentIndex() + 1 }} из {{ exercises().length }} · {{ exercise().title }}
+          </h3>
+          <p class="card-description">{{ exercise().task }}</p>
+        </div>
+        <div class="exercise-nav">
+          <button
+            type="button"
+            class="btn btn-outline btn-icon"
+            (click)="prev()"
+            [disabled]="currentIndex() === 0"
+            title="Предыдущее упражнение"
+            aria-label="Предыдущее упражнение"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m15 18-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="btn btn-outline btn-icon"
+            (click)="next()"
+            [disabled]="currentIndex() === exercises().length - 1"
+            title="Следующее упражнение"
+            aria-label="Следующее упражнение"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="card-content stepper-row">
+        @for (ex of exercises(); track ex.id; let i = $index) {
+          <button
+            type="button"
+            class="step-chip"
+            [class.current]="i === currentIndex()"
+            [class.solved]="solvedSet().has(i)"
+            (click)="selectExercise(i)"
+            [title]="i + 1 + '. ' + ex.title"
+          >
+            @if (solvedSet().has(i)) {
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+            } @else {
+              {{ i + 1 }}
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Доска -->
+    <div class="card">
+      <div class="card-header board-header">
+        <div>
+          <h3 class="card-title">Доска</h3>
+          <p class="card-description">
+            {{ boardHint() }}
+          </p>
+        </div>
+        <div class="board-actions">
+          @if (clockId()) {
+            <div class="clock-controls" role="group" aria-label="Тактовый генератор">
+              <button
+                type="button"
+                class="btn btn-default btn-sm"
+                (click)="tick()"
+                [disabled]="ticking() || auto() || clockLevel() === 1"
+                [title]="
+                  clockLevel() === 1 && !ticking() && !auto()
+                    ? 'Сначала опустите CLK в 0'
+                    : 'Один такт: CLK поднимается в 1 и опускается в 0'
+                "
+              >
+                Такт ▸
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline btn-sm"
+                [class.running]="auto()"
+                (click)="toggleAuto()"
+                [disabled]="ticking()"
+                title="Автоматический генератор тактов"
+              >
+                {{ auto() ? '⏸ Пауза' : '▶ Авто' }}
+              </button>
+              <select
+                class="btn btn-outline btn-sm rate"
+                [value]="rate()"
+                (change)="setRate(+$any($event.target).value)"
+                aria-label="Частота генератора"
+                title="Частота генератора"
+              >
+                @for (hz of rates; track hz) {
+                  <option [value]="hz" [selected]="hz === rate()">{{ hz }} Гц</option>
+                }
+              </select>
+              <span class="edges" title="Сколько фронтов (0 → 1) подано с начала упражнения">
+                тактов: {{ edges() }}
+              </span>
+            </div>
+          }
+          <button type="button" class="btn btn-outline btn-sm" (click)="toggleHint()">
+            {{ hintShown() ? 'Скрыть подсказку' : 'Подсказка' }}
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" (click)="reset()">
+            Очистить доску
+          </button>
+        </div>
+      </div>
+      <div class="card-content board-wrap">
+        @if (isBlocksMode()) {
+          @if (current(); as cur) {
+            <div class="inspector">
+              <div class="inspector-bar">
+                <nav class="crumbs" aria-label="Где вы находитесь">
+                  @for (lvl of levels(); track $index; let i = $index; let last = $last) {
+                    @if (last) {
+                      <strong>{{ lvl.title }}</strong>
+                    } @else {
+                      <button type="button" class="crumb" (click)="inspectTo(i)">
+                        {{ lvl.title }}
+                      </button>
+                      <span class="crumb-sep">›</span>
+                    }
+                  }
+                </nav>
+                <div class="inspector-actions">
+                  <button type="button" class="btn btn-outline btn-sm" (click)="inspectUp()">
+                    ← Назад
+                  </button>
+                  @if (cur.def?.source) {
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm lock"
+                      [class.unlocked]="editUnlocked()"
+                      (click)="editUnlocked.set(!editUnlocked())"
+                      [title]="
+                        editUnlocked()
+                          ? 'Снова закрыть редактирование'
+                          : 'Разрешить менять схему блока'
+                      "
+                    >
+                      {{ editUnlocked() ? '🔓 Редактирование разрешено' : '🔒 Только просмотр' }}
+                    </button>
+                  }
+                </div>
+              </div>
+              @if (editUnlocked() && cur.def?.source) {
+                <div class="inspector-edit pop-in">
+                  <p>
+                    Схему блока меняют в упражнении, где вы её собрали: изменённое решение должно
+                    по-прежнему проходить проверку. Пока оно не решено, блок работает по последней
+                    верной версии.
+                  </p>
+                  <button
+                    type="button"
+                    class="btn btn-default btn-sm"
+                    (click)="openEditor(cur.def!)"
+                  >
+                    Открыть в редакторе →
+                  </button>
+                </div>
+              }
+              @if (cur.solution && isBlockSolution(cur.solution)) {
+                <app-block-board
+                  [iface]="cur.iface"
+                  [library]="library()"
+                  [instances]="cur.solution.instances"
+                  [busWires]="cur.solution.busWires"
+                  [expansion]="cur.expansion"
+                  [scope]="cur.scope"
+                  [readonly]="true"
+                  (inspect)="inspectInto($event)"
+                />
+              } @else if (cur.solution) {
+                <app-circuit-view
+                  [gates]="cur.solution.gates"
+                  [wires]="cur.solution.wires"
+                  [iface]="cur.iface"
+                  [scope]="cur.scope"
+                />
+              }
+            </div>
+          } @else {
+            <app-block-board
+              [iface]="iface()"
+              [library]="library()"
+              [(instances)]="instances"
+              [(busWires)]="busWires"
+              [expansion]="expansion()"
+              [scope]="scopeFn"
+              [clockNode]="clockId()"
+              (toggle)="onBoardToggle($event)"
+              (inspect)="inspectInto($event)"
+              (message)="notify($event)"
+            />
+          }
+        } @else {
+          <svg
+            #board
+            class="board-svg"
+            [attr.viewBox]="'0 0 ' + BOARD_W + ' ' + BOARD_H"
+            role="img"
+            aria-label="Интерактивная доска с логическими элементами"
+          >
+            <defs>
+              <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+                <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
+              </pattern>
+            </defs>
+            <rect
+              class="board-bg"
+              [attr.width]="BOARD_W"
+              [attr.height]="BOARD_H"
+              rx="10"
+              fill="url(#dots)"
+            />
+
+            <!-- ================= Провода ================= -->
+            @for (w of wires(); track w.id) {
+              <g class="wire" (pointerdown)="removeWire(w.id)">
+                <title>Клик — удалить провод</title>
+                <path class="wire-hit" [attr.d]="wireD(w)" />
+                <path class="wire-line" [class]="pinCls(wireValue(w))" [attr.d]="wireD(w)" />
+              </g>
+            }
+
+            <!-- ================= Входы ================= -->
+            @for (id of activeInputs(); track id) {
+              <g class="input-node" [class.is-clock]="clockId() === id">
+                <g class="node-click" (pointerdown)="toggleInput(id)">
+                  <title>
+                    Клик — переключить {{ inputLabel(id) }} ({{ inputState()[id] }} →
+                    {{ 1 - inputState()[id] }})
+                  </title>
+                  <rect
+                    class="node-box"
+                    x="10"
+                    [attr.y]="inputY(id) - 22"
+                    width="86"
+                    height="44"
+                    rx="10"
+                  />
+                  <text class="node-label" x="30" [attr.y]="inputY(id) + 5">
+                    {{ inputLabel(id) }}
+                  </text>
+                  <rect
+                    class="node-chip"
+                    [class]="pinCls(inputState()[id])"
+                    x="56"
+                    [attr.y]="inputY(id) - 12"
+                    width="26"
+                    height="24"
+                    rx="7"
+                  />
+                  <text class="node-chip-text" x="69" [attr.y]="inputY(id) + 5">
+                    {{ inputState()[id] }}
+                  </text>
+                </g>
+                <g
+                  class="pin"
+                  (pointerenter)="pinEnter(id, 'out')"
+                  (pointerleave)="pinLeave(id, 'out')"
+                >
+                  <circle
+                    class="pin-hit"
+                    [attr.cx]="INPUT_X"
+                    [attr.cy]="inputY(id)"
+                    r="13"
+                    (pointerdown)="pinDown($event, id, 'out')"
+                  />
+                  <circle
+                    class="pin-dot"
+                    [attr.cx]="INPUT_X"
+                    [attr.cy]="inputY(id)"
+                    r="5.5"
+                    [class]="pinCls(valueAt(id))"
+                  />
+                </g>
+              </g>
+            }
+
+            <!-- ================= Выходы ================= -->
+            @for (o of activeOutputs(); track o) {
+              <g class="out-node">
+                <rect
+                  class="node-box out-box"
+                  x="788"
+                  [attr.y]="outputY(o) - 22"
+                  width="86"
+                  height="44"
+                  rx="10"
+                />
+                <text class="node-label" x="812" [attr.y]="outputY(o) + 5">{{ o }}</text>
+                <rect
+                  class="node-chip"
+                  [class]="pinCls(valueAt(o))"
+                  x="834"
+                  [attr.y]="outputY(o) - 12"
+                  width="26"
+                  height="24"
+                  rx="7"
+                />
+                <text class="node-chip-text" x="847" [attr.y]="outputY(o) + 5">
+                  {{ valText(valueAt(o)) }}
+                </text>
+                <g
+                  class="pin"
+                  (pointerenter)="pinEnter(o, 'in0')"
+                  (pointerleave)="pinLeave(o, 'in0')"
+                >
+                  <circle
+                    class="pin-hit"
+                    [attr.cx]="OUT_X"
+                    [attr.cy]="outputY(o)"
+                    r="13"
+                    (pointerdown)="pinDown($event, o, 'in0')"
+                  />
+                  <circle
+                    class="pin-dot"
+                    [attr.cx]="OUT_X"
+                    [attr.cy]="outputY(o)"
+                    r="5.5"
+                    [class]="pinCls(pinValue(o, 'in0'))"
+                  />
+                </g>
+              </g>
+            }
+
+            <!-- ================= Гейты ================= -->
+            @for (g of gates(); track g.id) {
+              <g
+                class="gate"
+                [class.dragging]="movingId() === g.id"
+                [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'"
+                (pointerdown)="gateDown($event, g)"
+              >
+                <path class="gate-body" [attr.d]="bodyPath(g.type)" />
+                @if (extraArc(g.type) !== null) {
+                  <path class="gate-extra" [attr.d]="extraArc(g.type)" />
+                }
+                @if (bubbleCx(g.type) !== null) {
+                  <circle class="gate-bubble" [attr.cx]="bubbleCx(g.type)" cy="24" r="5" />
+                }
+                <text
+                  class="gate-label"
+                  [class.small]="g.type === 'NOT'"
+                  [attr.x]="g.type === 'NOT' ? 13 : GATE_W / 2"
+                  y="29"
+                >
+                  {{ g.type }}
+                </text>
+
+                <!-- кнопка удаления -->
+                <g
+                  class="gate-del"
+                  (pointerdown)="$event.stopPropagation()"
+                  (click)="removeGate(g.id)"
+                >
+                  <title>Удалить элемент</title>
+                  <circle cx="76" cy="0" r="8" />
+                  <path d="M73 -3 L79 3 M79 -3 L73 3" />
+                </g>
+
+                <!-- входные пины -->
+                @for (p of gatePins(g.type); track p) {
+                  <g
+                    class="pin"
+                    [attr.transform]="'translate(-8 ' + pinY(g.type, p) + ')'"
+                    (pointerenter)="pinEnter(g.id, p)"
+                    (pointerleave)="pinLeave(g.id, p)"
+                  >
+                    <circle class="pin-hit" r="13" (pointerdown)="pinDown($event, g.id, p)" />
+                    <circle class="pin-dot" r="5.5" [class]="pinCls(pinValue(g.id, p))" />
+                  </g>
+                }
+
+                <!-- выходной пин -->
+                <g
+                  class="pin"
+                  (pointerenter)="pinEnter(g.id, 'out')"
+                  (pointerleave)="pinLeave(g.id, 'out')"
+                >
+                  <circle
+                    class="pin-hit"
+                    [attr.cx]="outPinX(g.type)"
+                    cy="24"
+                    r="13"
+                    (pointerdown)="pinDown($event, g.id, 'out')"
+                  />
+                  <circle
+                    class="pin-dot"
+                    [attr.cx]="outPinX(g.type)"
+                    cy="24"
+                    r="5.5"
+                    [class]="pinCls(pinValue(g.id, 'out'))"
+                  />
+                </g>
+
+                <!-- «щуп»: текущее значение на выходе -->
+                <g class="probe" [attr.transform]="'translate(' + (outPinX(g.type) + 20) + ' 24)'">
+                  <circle r="9" />
+                  <text y="3.5" text-anchor="middle">{{ valText(pinValue(g.id, 'out')) }}</text>
+                </g>
+              </g>
+            }
+
+            <!-- ================= Предпросмотр провода ================= -->
+            @if (previewD(); as d) {
+              <path class="wire-preview" [class.ok]="dropOk()" [attr.d]="d" />
+            }
+          </svg>
+        }
+
+        @if (flash(); as message) {
+          <div class="flash pop-in" role="alert">{{ message }}</div>
+        }
+      </div>
+    </div>
+
+    <!-- ================= Успех ================= -->
+    @if (solved()) {
+      <div class="alert alert-success pop-in" role="status">
+        <span class="alert-icon">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="hsl(var(--success))"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </span>
+        <div class="alert-body">
+          <p class="alert-title">
+            @if (isStepsMode()) {
+              Схема работает как надо! Формула:
+              <strong class="mono">{{ exercise().formula }}</strong>
+            } @else {
+              Схема работает — {{ matched() }} из {{ exercise().target.length }}! Формула:
+              <strong class="mono">{{ exercise().formula }}</strong>
+            }
+          </p>
+          <p class="alert-description">{{ exercise().success }}</p>
+        </div>
+        @if (currentIndex() < exercises().length - 1) {
+          <button type="button" class="btn btn-default btn-sm alert-action" (click)="next()">
+            Следующее
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </button>
+        }
+      </div>
+    }
+
+    <!-- ================= Временная диаграмма ================= -->
+    @if (isStepsMode()) {
+      <div class="card">
+        <div class="card-header board-header">
+          <div>
+            <h3 class="card-title">Временная диаграмма</h3>
+            <p class="card-description">
+              История сигналов: каждый столбец — одно изменение. Пунктир — значение пока не
+              определено
+            </p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" (click)="clearHistory()">
+            Очистить
+          </button>
+        </div>
+        <div class="card-content">
+          <svg
+            class="wave"
+            [attr.viewBox]="'0 0 ' + WAVE.width + ' ' + wave().height"
+            role="img"
+            aria-label="Временная диаграмма сигналов"
+          >
+            @for (x of wave().cols; track $index) {
+              <line
+                class="wave-grid"
+                [attr.x1]="x"
+                [attr.x2]="x"
+                y1="0"
+                [attr.y2]="wave().height"
+              />
+            }
+            @if (wave().cols.length > 0) {
+              <rect
+                class="wave-now"
+                [attr.x]="wave().lastX"
+                y="0"
+                [attr.width]="WAVE.step"
+                [attr.height]="wave().height"
+              />
+            }
+            @for (r of wave().rows; track r.label) {
+              <g [class]="'wave-row ' + r.kind">
+                <text class="wave-label" x="0" [attr.y]="r.top + 18">{{ r.label }}</text>
+                <path class="wave-x" [attr.d]="r.dx" />
+                <path class="wave-line" [attr.d]="r.d" />
+              </g>
+            }
+          </svg>
+        </div>
+      </div>
+    }
+
+    <!-- ================= Таблица истинности / Сценарий ================= -->
+    <div class="card">
+      @if (isStepsMode()) {
+        <div class="card-header board-header">
+          <div>
+            <h3 class="card-title">Сценарий проверки</h3>
+            <p class="card-description">
+              Выполняйте шаги по порядку: устанавливайте тумблеры и добивайтесь нужных значений на
+              выходах
+            </p>
+          </div>
+          <span class="badge" [class.badge-success]="solved()" [class.badge-secondary]="!solved()">
+            Шаг {{ currentStepNo() }} / {{ totalSteps() }}
+          </span>
+        </div>
+        <div class="card-content steps-panel">
+          @for (st of exercise().steps; track $index; let i = $index) {
+            <div
+              class="step-item"
+              [class.done]="i < passedSteps()"
+              [class.active]="i === passedSteps()"
+            >
+              <span class="step-no">
+                @if (i < passedSteps()) {
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  >
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                } @else {
+                  {{ i + 1 }}
+                }
+              </span>
+              <div class="step-body">
+                <p class="step-text">{{ st.text }}</p>
+                <div class="step-req">
+                  @if (st.pulses && st.pulses > 1) {
+                    <span class="req-chip pulses">тактов: {{ st.pulses }}</span>
+                  }
+                  @for (id of activeInputs(); track id) {
+                    <span class="req-chip" [class.hit]="inputState()[id] === st.inputs[id]">
+                      {{ inputLabel(id) }} = {{ st.inputs[id] }}
+                    </span>
+                  }
+                  <span class="req-sep">→</span>
+                  @for (o of activeOutputs(); track o) {
+                    @if (st.expect[o] !== undefined) {
+                      <span class="req-chip req-out" [class.hit]="valueAt(o) === st.expect[o]">
+                        {{ o }} = {{ st.expect[o] }}
+                      </span>
+                    }
+                  }
+                  @if (noExpectation(st)) {
+                    <span class="req-chip req-out hit">выход пока не проверяется</span>
+                  }
+                </div>
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="card-header board-header">
+          <div>
+            <h3 class="card-title">Таблица истинности</h3>
+            <p class="card-description">
+              Строка с подсветкой — текущее положение тумблеров на доске
+            </p>
+          </div>
+          <span class="badge" [class.badge-success]="solved()" [class.badge-secondary]="!solved()">
+            {{ matched() }} / {{ exercise().target.length }}
+          </span>
+        </div>
+        <div class="card-content">
+          <app-truth-table
+            [rows]="tableRows()"
+            [currentRow]="currentRow()"
+            [inputIds]="activeInputs()"
+            [labels]="labels()"
+            [outputs]="activeOutputs()"
+          />
+        </div>
+      }
+    </div>
+
+    <!-- ================= Подсказка ================= -->
+    @if (hintShown()) {
+      <div class="alert pop-in">
+        <span class="alert-icon">
+          <svg
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2Z"
+            />
+          </svg>
+        </span>
+        <div>
+          <p class="alert-title">Подсказка</p>
+          <p class="alert-description">{{ exercise().hint }}</p>
+        </div>
+      </div>
+    }
+  </section>
+
+  <!-- призрак перетаскиваемого элемента -->
+  @if (placing(); as t) {
+    <div
+      class="ghost"
+      [style.left.px]="cursorClient()?.x"
+      [style.top.px]="cursorClient()?.y"
+      aria-hidden="true"
+    >
+      <svg viewBox="0 0 84 48" width="56" height="32">
+        <path class="gate-body" [attr.d]="bodyPath(t)" />
+        @if (bubbleCx(t) !== null) {
+          <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
+        }
+      </svg>
+    </div>
+  }
+</div>

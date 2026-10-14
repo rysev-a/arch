@@ -1,0 +1,323 @@
+/* ============================================================
+   Дизайн-токены в стиле shadcn/ui (светлая и тёмная темы)
+   ============================================================ */
+:root {
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --success: 142 72% 30%;
+  --success-foreground: 0 0% 98%;
+  --warning: 32 95% 40%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 8% 6%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 98%;
+  --success: 142 70% 45%;
+  --success-foreground: 240 10% 3.9%;
+  --warning: 38 92% 55%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family:
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    'Helvetica Neue',
+    Arial,
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* ============================================================
+   Карточка (card)
+   ============================================================ */
+.card {
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+.card-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+}
+.card-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.card-description {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.card-content {
+  padding: 0.75rem 1.25rem 1.25rem;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.25rem 1.25rem;
+}
+
+/* ============================================================
+   Кнопки (button)
+   ============================================================ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  border-radius: calc(var(--radius) - 2px);
+  border: 1px solid transparent;
+  font-size: 0.875rem;
+  font-weight: 500;
+  height: 2.25rem;
+  padding: 0 1rem;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.btn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.btn svg {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+}
+
+.btn-default {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+.btn-default:hover {
+  background: hsl(var(--primary) / 0.9);
+}
+
+.btn-secondary {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+.btn-secondary:hover {
+  background: hsl(var(--secondary) / 0.8);
+}
+
+.btn-outline {
+  background: hsl(var(--background));
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.btn-outline:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.btn-ghost {
+  background: transparent;
+  color: hsl(var(--foreground));
+}
+.btn-ghost:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+
+.btn-destructive {
+  background: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+.btn-destructive:hover {
+  background: hsl(var(--destructive) / 0.9);
+}
+
+.btn-sm {
+  height: 2rem;
+  padding: 0 0.75rem;
+  font-size: 0.8125rem;
+}
+.btn-icon {
+  width: 2.25rem;
+  padding: 0;
+}
+
+/* ============================================================
+   Бейдж (badge)
+   ============================================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  padding: 0.125rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.badge-secondary {
+  background: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+}
+.badge-outline {
+  border-color: hsl(var(--border));
+  color: hsl(var(--foreground));
+}
+.badge-success {
+  background: hsl(var(--success));
+  color: hsl(var(--success-foreground));
+}
+.badge-warning {
+  background: hsl(var(--warning) / 0.15);
+  border-color: hsl(var(--warning) / 0.4);
+  color: hsl(var(--warning));
+}
+
+/* ============================================================
+   Алерт (alert)
+   ============================================================ */
+.alert {
+  position: relative;
+  box-sizing: border-box;
+  width: 100%;
+  border-radius: var(--radius);
+  border: 1px solid hsl(var(--border));
+  background: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  padding: 1rem 1.25rem;
+  display: flex;
+  gap: 0.875rem;
+}
+.alert-success {
+  border-color: hsl(var(--success) / 0.45);
+  background: hsl(var(--success) / 0.08);
+}
+.alert-destructive {
+  border-color: hsl(var(--destructive) / 0.45);
+  background: hsl(var(--destructive) / 0.08);
+}
+.alert-icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+.alert-title {
+  margin: 0 0 0.125rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+}
+.alert-description {
+  margin: 0;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.alert-description strong {
+  color: hsl(var(--foreground));
+}
+.alert-body {
+  flex: 1;
+  min-width: 0;
+}
+.alert-action {
+  align-self: flex-start;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   Служебное
+   ============================================================ */
+.text-muted {
+  color: hsl(var(--muted-foreground));
+}
+.mono {
+  font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.pop-in {
+  animation: pop-in 0.25s ease-out both;
+}

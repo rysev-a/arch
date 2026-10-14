@@ -1,0 +1,116 @@
+<svg
+  class="cv"
+  [attr.viewBox]="'0 0 ' + W + ' ' + H"
+  role="img"
+  aria-label="Схема внутри блока (только просмотр)"
+>
+  <defs>
+    <pattern id="cv-dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
+    </pattern>
+  </defs>
+  <rect class="cv-bg" [attr.width]="W" [attr.height]="H" rx="10" fill="url(#cv-dots)" />
+
+  @for (w of wires(); track w.id) {
+    <path class="wire-line" [class]="'wire-line ' + cls(wireVal(w))" [attr.d]="wireD(w)" />
+  }
+
+  @for (id of iface().inputs; track id) {
+    <g class="node">
+      <rect class="node-box" x="10" [attr.y]="inputY(id) - 22" width="86" height="44" rx="10" />
+      <text class="node-label" x="30" [attr.y]="inputY(id) + 5">{{ label(id) }}</text>
+      <rect
+        class="node-chip"
+        [class.v1]="val(id) === 1"
+        x="56"
+        [attr.y]="inputY(id) - 12"
+        width="26"
+        height="24"
+        rx="7"
+      />
+      <text class="node-chip-text" [class.v1]="val(id) === 1" x="69" [attr.y]="inputY(id) + 5">
+        {{ text(val(id)) }}
+      </text>
+      <circle
+        class="pin-dot"
+        [class]="'pin-dot ' + cls(val(id))"
+        [attr.cx]="INPUT_X"
+        [attr.cy]="inputY(id)"
+        r="5.5"
+      />
+    </g>
+  }
+
+  @for (o of iface().outputs; track o) {
+    <g class="node">
+      <rect
+        class="node-box out"
+        x="788"
+        [attr.y]="outputY(o) - 22"
+        width="86"
+        height="44"
+        rx="10"
+      />
+      <text class="node-label" x="812" [attr.y]="outputY(o) + 5">{{ o }}</text>
+      <rect
+        class="node-chip"
+        [class.v1]="val(o) === 1"
+        x="834"
+        [attr.y]="outputY(o) - 12"
+        width="26"
+        height="24"
+        rx="7"
+      />
+      <text class="node-chip-text" [class.v1]="val(o) === 1" x="847" [attr.y]="outputY(o) + 5">
+        {{ text(val(o)) }}
+      </text>
+      <circle
+        class="pin-dot"
+        [class]="'pin-dot ' + cls(val(o))"
+        [attr.cx]="OUT_X"
+        [attr.cy]="outputY(o)"
+        r="5.5"
+      />
+    </g>
+  }
+
+  @for (g of gates(); track g.id) {
+    <g class="gate" [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'">
+      <path class="gate-body" [attr.d]="body(g)" />
+      @if (extra(g) !== null) {
+        <path class="gate-extra" [attr.d]="extra(g)" />
+      }
+      @if (bubble(g) !== null) {
+        <circle class="gate-bubble" [attr.cx]="bubble(g)" cy="24" r="5" />
+      }
+      <text
+        class="gate-label"
+        [class.small]="g.type === 'NOT'"
+        [attr.x]="g.type === 'NOT' ? 13 : GATE_W / 2"
+        y="29"
+      >
+        {{ g.type }}
+      </text>
+      @for (p of pins(g); track p) {
+        <circle
+          class="pin-dot"
+          [class]="'pin-dot ' + cls(pinVal(g.id, p))"
+          cx="-8"
+          [attr.cy]="pinY(g, p)"
+          r="5.5"
+        />
+      }
+      <circle
+        class="pin-dot"
+        [class]="'pin-dot ' + cls(val(g.id))"
+        [attr.cx]="outX(g)"
+        cy="24"
+        r="5.5"
+      />
+      <g class="probe" [attr.transform]="'translate(' + (outX(g) + 20) + ' 24)'">
+        <circle r="9" />
+        <text y="3.5" text-anchor="middle">{{ text(val(g.id)) }}</text>
+      </g>
+    </g>
+  }
+</svg>

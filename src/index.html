@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <title>Как работает процессор — интерактивный тренажёр</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    <script>
+      // Применяем тему до загрузки Angular, чтобы не было «вспышки» светлого фона
+      (function () {
+        var theme = 'dark';
+        try {
+          var saved = localStorage.getItem('processor-theme');
+          if (saved === 'light' || saved === 'dark') theme = saved;
+        } catch (e) {}
+        document.documentElement.classList.add(theme);
+      })();
+    </script>
+  </head>
+  <body>
+    <app-root></app-root>
+  </body>
+</html>
