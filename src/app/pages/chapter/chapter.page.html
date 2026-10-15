@@ -16,9 +16,21 @@
       </div>
       <div class="head-foot">
         <span class="muted">{{ progress().done }} из {{ progress().items.length }} решено</span>
-        <a class="btn btn-default btn-sm" [routerLink]="['/', chapter().slug, resumeId()]">
-          {{ started() ? 'Продолжить' : 'Начать' }}
-        </a>
+        <span class="head-buttons">
+          @if (progress().done < progress().items.length) {
+            <button
+              type="button"
+              class="btn btn-outline btn-sm"
+              (click)="markAll()"
+              title="Если вы уже знаете эту тему: все упражнения главы будут считаться решёнными"
+            >
+              Отметить решённым
+            </button>
+          }
+          <a class="btn btn-default btn-sm" [routerLink]="['/', chapter().slug, resumeId()]">
+            {{ started() ? 'Продолжить' : 'Начать' }}
+          </a>
+        </span>
       </div>
     </div>
   </div>

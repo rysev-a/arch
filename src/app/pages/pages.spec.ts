@@ -89,4 +89,34 @@ describe('страницы глав', () => {
     localStorage.setItem(mux.storageKey, JSON.stringify({ solved: [0], current: 4 }));
     expect(chapterProgress(mux).resume).toBe(4);
   });
+
+  it('страница главы: «Отметить решённым» засчитывает всю главу (с подтверждением)', async () => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const asm = chapterBySlug('asm')!;
+    localStorage.setItem(
+      asm.storageKey,
+      JSON.stringify({ codes: { upper: 'мой код' }, solved: ['upper'], current: 3 }),
+    );
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/asm', ChapterPage);
+    const el = harness.routeNativeElement as HTMLElement;
+    const btn = () =>
+      [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
+    const orig = window.confirm;
+    window.confirm = () => false;
+    btn()!.click();
+    harness.detectChanges();
+    expect(el.textContent).toContain(`1 из ${asm.exercises.length} решено`);
+    window.confirm = () => true;
+    btn()!.click();
+    window.confirm = orig;
+    harness.detectChanges();
+    expect(el.textContent).toContain(`${asm.exercises.length} из ${asm.exercises.length} решено`);
+    expect(btn()).toBeUndefined();
+    // свой код и текущее задание на месте
+    const saved = JSON.parse(localStorage.getItem(asm.storageKey)!);
+    expect(saved.codes).toEqual({ upper: 'мой код' });
+    expect(saved.current).toBe(3);
+    expect(saved.solved.length).toBe(asm.exercises.length);
+  });
 });

@@ -90,6 +90,7 @@ import { GuideAction } from './guides';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
+import { confirmMarkChapter } from '../../progress/mark-solved';
 import { GuidePlayer } from '../../guide/guide-player';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
@@ -463,9 +464,16 @@ export class CircuitLab {
      ============================================================ */
 
   /** Переход к упражнению — это переход по адресу /<глава>/<упражнение>; доску сменит sectionEffect */
-  /** Кто уже знает материал, может засчитать упражнение сам */
-  protected markSolved(): void {
-    this.solvedSet.update((s) => new Set(s).add(this.currentIndex()));
+  /** Все упражнения главы решены — кнопка «Отметить решённым» больше не нужна */
+  protected readonly chapterSolved = computed(
+    () => this.solvedSet().size >= this.exercises().length,
+  );
+
+  /** Кто уже знает материал, засчитывает всю главу разом */
+  protected markChapterSolved(): void {
+    const section = this.section();
+    if (!confirmMarkChapter(section.title, this.exercises().length)) return;
+    this.solvedSet.set(new Set(this.exercises().map((_, i) => i)));
     this.persist();
   }
 

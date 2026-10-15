@@ -13,7 +13,8 @@ import { GuidePlayer } from '../guide/guide-player';
 import { GuideSession } from '../guide/guide-session';
 import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guide';
 import { codeGuideFor } from '../guide/code-registry';
-import { nextInCourse } from '../pages/chapters/chapters';
+import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
+import { confirmMarkChapter } from '../progress/mark-solved';
 
 const STORAGE_KEY = 'processor-riscv-v1';
 const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
@@ -309,9 +310,14 @@ export class RvLab {
     this.version.update((n) => n + 1);
   }
 
-  /** Кто уже знает материал, может засчитать задание сам */
-  protected markSolved(): void {
-    this.solved.update((s) => new Set(s).add(this.task().id));
+  /** Все задания главы решены — кнопка «Отметить решённым» больше не нужна */
+  protected readonly chapterSolved = computed(() => this.solved().size >= this.tasks.length);
+
+  /** Кто уже знает материал, засчитывает всю главу разом */
+  protected markChapterSolved(): void {
+    const title = CHAPTERS.find((c) => c.slug === this.slug)?.title ?? '';
+    if (!confirmMarkChapter(title, this.tasks.length)) return;
+    this.solved.set(new Set(this.tasks.map((t) => t.id)));
     this.save();
   }
 

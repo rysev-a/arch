@@ -1,11 +1,23 @@
 <div class="asm">
   <!-- ============ Условие ============ -->
   <div class="card">
-    <div class="card-header">
-      <h3 class="card-title">
-        Задание {{ index() + 1 }} из {{ tasks.length }} · {{ task().title }}
-      </h3>
-      <p class="card-description">{{ task().text }}</p>
+    <div class="card-header head-row">
+      <div class="head-text">
+        <h3 class="card-title">
+          Задание {{ index() + 1 }} из {{ tasks.length }} · {{ task().title }}
+        </h3>
+        <p class="card-description">{{ task().text }}</p>
+      </div>
+      @if (!chapterSolved()) {
+        <button
+          type="button"
+          class="btn btn-outline btn-sm mark-chapter head-action"
+          (click)="markChapterSolved()"
+          title="Если вы уже знаете эту тему: все задания главы будут считаться решёнными"
+        >
+          Отметить решённым
+        </button>
+      }
     </div>
     <div class="card-content stepper-row">
       @for (t of tasks; track t.id; let i = $index) {
@@ -22,16 +34,6 @@
           } @else {
             {{ i + 1 }}
           }
-        </button>
-      }
-      @if (!solved().has(task().id)) {
-        <button
-          type="button"
-          class="btn btn-outline btn-sm mark-done"
-          (click)="markSolved()"
-          title="Если вы уже знаете этот материал: задание будет считаться решённым"
-        >
-          Отметить решённым
         </button>
       }
     </div>

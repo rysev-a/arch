@@ -142,6 +142,16 @@
           <p class="card-description">{{ exercise().task }}</p>
         </div>
         <div class="exercise-nav">
+          @if (!chapterSolved()) {
+            <button
+              type="button"
+              class="btn btn-outline btn-sm mark-chapter"
+              (click)="markChapterSolved()"
+              title="Если вы уже знаете эту тему: все упражнения главы будут считаться решёнными"
+            >
+              Отметить решённым
+            </button>
+          }
           <button
             type="button"
             class="btn btn-outline btn-icon"
@@ -206,16 +216,6 @@
             } @else {
               {{ i + 1 }}
             }
-          </button>
-        }
-        @if (!solvedSet().has(currentIndex())) {
-          <button
-            type="button"
-            class="btn btn-outline btn-sm mark-done"
-            (click)="markSolved()"
-            title="Если вы уже знаете этот материал: задание будет считаться решённым"
-          >
-            Отметить решённым
           </button>
         }
       </div>

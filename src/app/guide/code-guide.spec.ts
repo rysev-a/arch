@@ -183,10 +183,10 @@ describe('режим авто для программ: в лаборатории
   });
 });
 
-describe('«Отметить решённым»', () => {
+describe('«Отметить решённым» для всей главы', () => {
   beforeEach(() => localStorage.clear());
 
-  it('в лаборатории программ задание засчитывается вручную и запоминается', () => {
+  it('в лаборатории программ засчитываются все задания и кнопка пропадает', () => {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -205,11 +205,14 @@ describe('«Отметить решённым»', () => {
     const btn = () =>
       [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
     expect(btn()).toBeTruthy();
+    const orig = window.confirm;
+    window.confirm = () => true;
     btn()!.click();
+    window.confirm = orig;
     f.detectChanges();
     expect(btn()).toBeUndefined();
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(1);
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(ASM_TASKS.length);
     const saved = JSON.parse(localStorage.getItem('processor-asm-v1')!) as { solved: string[] };
-    expect(saved.solved).toEqual([ASM_TASKS[2].id]);
+    expect(saved.solved.sort()).toEqual(ASM_TASKS.map((t) => t.id).sort());
   });
 });

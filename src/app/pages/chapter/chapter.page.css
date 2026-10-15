@@ -78,3 +78,9 @@
   background: hsl(var(--muted));
   color: hsl(var(--muted-foreground));
 }
+
+.head-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}

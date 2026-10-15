@@ -439,17 +439,24 @@ describe('режим авто: переходы и кнопки', () => {
     expect(el.textContent).toContain('нужны блоки из предыдущих упражнений');
   });
 
-  it('«Отметить решённым» засчитывает упражнение и пропадает', () => {
+  it('«Отметить решённым» в шапке засчитывает все упражнения главы и пропадает', () => {
     const { el, click } = lab('simple-circuits', 'and');
-    expect(el.querySelector('.step-chip.solved')).toBeNull();
+    const total = SECTIONS[0].exercises.length;
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
+    const orig = window.confirm;
+    window.confirm = () => false; // передумали — ничего не меняется
     click('Отметить решённым');
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(1);
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
+    window.confirm = () => true;
+    click('Отметить решённым');
+    window.confirm = orig;
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(total);
     expect(
       [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),
     ).toBe(false);
     const saved = JSON.parse(localStorage.getItem('processor-progress-v2-simple')!) as {
       solved: number[];
     };
-    expect(saved.solved).toContain(SECTIONS[0].exercises.findIndex((e) => e.id === 'and'));
+    expect(saved.solved.length).toBe(total);
   });
 });

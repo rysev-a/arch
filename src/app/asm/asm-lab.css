@@ -340,6 +340,24 @@
   height: 5rem;
 }
 
-.mark-done {
-  margin-left: auto;
+/* шапка карточки задания: текст слева, «Отметить решённым» справа сверху */
+.head-row {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.head-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.head-action {
+  flex: none;
+}
+@media (max-width: 640px) {
+  .head-row {
+    flex-wrap: wrap;
+  }
 }
