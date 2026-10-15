@@ -99,6 +99,7 @@ import {
   zoomAround,
 } from './board-pan';
 import { ViewControls } from './view-controls';
+import { PixelLock } from '../../ui/pixel-lock';
 import { AutoWire, suggestWires } from './auto-wire';
 import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
@@ -149,7 +150,15 @@ const DROP_ID = 'auto-new';
 
 @Component({
   selector: 'app-circuit-lab',
-  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet, GuidePlayer, ViewControls],
+  imports: [
+    TruthTable,
+    BlockBoard,
+    CircuitView,
+    NgTemplateOutlet,
+    GuidePlayer,
+    ViewControls,
+    PixelLock,
+  ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
 })

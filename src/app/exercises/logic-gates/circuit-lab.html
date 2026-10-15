@@ -15,7 +15,7 @@
             @if (b.available) {
               {{ b.summary }}
             } @else {
-              🔒 {{ b.hint }}
+              <app-pixel-lock />{{ b.hint }}
             }
           </span>
         </span>
@@ -54,7 +54,7 @@
             @if (isUnlocked(t)) {
               {{ ruName(t) }}
             } @else {
-              🔒 {{ lockHint(t) }}
+              <app-pixel-lock />{{ lockHint(t) }}
             }
           </span>
         </span>
@@ -431,7 +431,9 @@
                           : 'Разрешить менять схему блока'
                       "
                     >
-                      {{ editUnlocked() ? '🔓 Редактирование разрешено' : '🔒 Только просмотр' }}
+                      <app-pixel-lock [open]="editUnlocked()" />{{
+                        editUnlocked() ? 'Редактирование разрешено' : 'Только просмотр'
+                      }}
                     </button>
                   }
                 </div>
