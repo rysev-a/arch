@@ -343,9 +343,30 @@ export class CircuitLab {
   protected readonly viewChanged = computed(
     () => this.pan().x !== 0 || this.pan().y !== 0 || this.zoom() !== 1,
   );
-  protected readonly viewBox = computed(() => viewBoxOf(this.pan(), this.zoom(), BOARD_W, BOARD_H));
+  /** ширина доски на экране в пикселях (следим за ней, чтобы высота «как есть» не меняла масштаб) */
+  private readonly boardPxW = signal(0);
+  /** высота задана вручную: масштаб определяет только ширина, высота лишь открывает больше или меньше поля */
+  private readonly manualHeight = computed(
+    () => !this.fullscreen() && this.boardHeight() !== null && this.boardPxW() > 0,
+  );
+  /** высота видимой части «мира» в единицах доски (при масштабе 1) */
+  private readonly worldH = computed(() =>
+    this.manualHeight() ? (this.boardHeight()! * BOARD_W) / this.boardPxW() : BOARD_H,
+  );
+  protected readonly viewBox = computed(() =>
+    viewBoxOf(this.pan(), this.zoom(), BOARD_W, this.worldH()),
+  );
   protected readonly viewW = computed(() => BOARD_W / this.zoom());
-  protected readonly viewH = computed(() => BOARD_H / this.zoom());
+  protected readonly viewH = computed(() => this.worldH() / this.zoom());
+
+  private readonly sizeWatch = effect((onCleanup) => {
+    const el = this.boardEl()?.nativeElement;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(() => this.boardPxW.set(el.getBoundingClientRect().width));
+    ro.observe(el);
+    this.boardPxW.set(el.getBoundingClientRect().width);
+    onCleanup(() => ro.disconnect());
+  });
   private panDrag: PanDrag | null = null;
   protected readonly cursorClient = signal<Point | null>(null);
   protected readonly movingId = signal<string | null>(null);
@@ -1449,6 +1470,10 @@ export class CircuitLab {
   /** Положение доски на экране: пикселей на единицу при масштабе 1 и поля от вписывания в контейнер */
   private metrics(): { rect: DOMRect; base: number; offX: number; offY: number } {
     const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
+    if (this.manualHeight()) {
+      // высота задана вручную: масштаб по ширине, доска прижата к верху — поля не нужны
+      return { rect, base: rect.width / BOARD_W, offX: 0, offY: 0 };
+    }
     // доска вписана в контейнер с сохранением пропорций: в полноэкранном режиме есть поля по краям
     const base = Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
     return {

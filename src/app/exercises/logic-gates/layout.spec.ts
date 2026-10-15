@@ -104,4 +104,56 @@ describe('положение таблицы истинности и высота
     expect(el.querySelector('.resize-grip')).toBeNull();
     expect((el.querySelector('.board-svg') as SVGSVGElement).style.height).toBe('');
   });
+
+  it('высота «как есть»: масштаб не меняется, доска лишь открывает больше или меньше поля', () => {
+    // заглушка ResizeObserver: сообщает ширину сразу после подключения
+    const original = globalThis.ResizeObserver;
+    globalThis.ResizeObserver = class {
+      constructor(private cb: () => void) {}
+      observe() {
+        this.cb();
+      }
+      unobserve() {}
+      disconnect() {}
+    } as unknown as typeof ResizeObserver;
+    try {
+      const f = TestBed.createComponent(CircuitLab);
+      f.componentRef.setInput(
+        'section',
+        SECTIONS.find((s) => s.slug === 'simple-circuits'),
+      );
+      f.componentRef.setInput('startExercise', 'and');
+      const el = f.nativeElement as HTMLElement;
+      // до первой отрисовки подменяем размеры доски: 880 по ширине
+      const proto = SVGElement.prototype as unknown as { getBoundingClientRect: () => DOMRect };
+      const realRect = proto.getBoundingClientRect;
+      proto.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, width: 880, height: 440, right: 880, bottom: 440 }) as DOMRect;
+      try {
+        f.detectChanges();
+        TestBed.tick();
+        f.detectChanges();
+        const svg = el.querySelector('.board-svg') as SVGSVGElement;
+        expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+
+        const grip = el.querySelector('.resize-grip') as HTMLElement;
+        grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 500 }));
+        document.dispatchEvent(new PointerEvent('pointermove', { clientY: 700 })); // +200
+        document.dispatchEvent(new PointerEvent('pointerup'));
+        f.detectChanges();
+        // ширина та же (880 px = 880 единиц), а видимой «земли» стало больше: 640 вместо 440
+        expect(svg.getAttribute('viewBox')).toBe('0 0 880 640');
+
+        grip.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientY: 500 }));
+        document.dispatchEvent(new PointerEvent('pointermove', { clientY: 300 })); // −200 от 640
+        document.dispatchEvent(new PointerEvent('pointerup'));
+        f.detectChanges();
+        expect(svg.getAttribute('viewBox')).toBe('0 0 880 240');
+      } finally {
+        proto.getBoundingClientRect = realRect;
+      }
+    } finally {
+      globalThis.ResizeObserver = original;
+    }
+  });
 });
