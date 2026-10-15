@@ -500,9 +500,6 @@ export class BlockBoard {
     } else if (isClick(this.pinDownAt, event)) {
       // просто щёлкнули по порту: шина тянется за мышью до следующего щелчка
       this.sticky.set(true);
-      this.message.emit(
-        'Кликните по порту, куда ведёт шина. Esc или клик в пустом месте — отмена.',
-      );
     } else {
       this.cancelWire();
     }

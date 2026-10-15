@@ -1062,9 +1062,6 @@ export class CircuitLab {
       } else if (isClick(this.pinDownAt, event)) {
         // просто щёлкнули по контакту: провод тянется за мышью до следующего щелчка
         this.pendingSticky.set(true);
-        this.notify(
-          'Кликните по контакту, куда ведёт провод. Esc или клик в пустом месте — отмена.',
-        );
       } else {
         this.cancelWire();
       }
