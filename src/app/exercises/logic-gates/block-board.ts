@@ -15,6 +15,8 @@ import { NodeValue, Point, wirePath } from './circuit.model';
 import {
   PanDrag,
   ZOOM,
+  isClick,
+  listenStickyCancel,
   clampWorld,
   dragPan,
   listenActivity,
@@ -174,6 +176,14 @@ export class BlockBoard {
     const el = this.svg()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(
+      listenStickyCancel(
+        el,
+        () => this.sticky(),
+        (t) => !!t.closest('.bpin-hit'),
+        () => this.cancelWire(),
+      ),
+    );
     onCleanup(listenActivity(el, (on) => this.zoomReady.set(on)));
     onCleanup(
       listenZoomWheel(
@@ -192,6 +202,9 @@ export class BlockBoard {
 
   protected readonly expanded = signal<ReadonlySet<string>>(new Set());
   protected readonly pending = signal<BusEnd | null>(null);
+  /** шина «прилипла» к мыши: после щелчка по порту она тянется за курсором до следующего щелчка */
+  protected readonly sticky = signal(false);
+  private pinDownAt: Point = { x: 0, y: 0 };
   protected readonly cursor = signal<Point | null>(null);
   protected readonly hover = signal<string | null>(null);
   protected readonly movingId = signal<string | null>(null);
@@ -370,9 +383,26 @@ export class BlockBoard {
     if (this.readonly()) return;
     event.preventDefault();
     event.stopPropagation();
+    const from = this.pending();
+    if (from && this.sticky()) {
+      // шина уже тянется за мышью: этот щелчок — её конец (повторный щелчок по началу — отмена)
+      this.cancelWire();
+      if (!sameEnd(from, row.end)) this.connect(from, row.end);
+      return;
+    }
     this.pending.set(row.end);
+    this.sticky.set(false);
+    this.pinDownAt = { x: event.clientX, y: event.clientY };
     this.hover.set(null);
     this.cursor.set(this.toBoard(event.clientX, event.clientY));
+  }
+
+  /** Отменить начатую шину */
+  protected cancelWire(): void {
+    this.pending.set(null);
+    this.sticky.set(false);
+    this.hover.set(null);
+    this.cursor.set(null);
   }
 
   protected pinEnter(row: PinRow): void {
@@ -449,8 +479,8 @@ export class BlockBoard {
     if (this.pending()) this.cursor.set(this.toBoard(event.clientX, event.clientY));
   }
 
-  @HostListener('document:pointerup')
-  protected onUp(): void {
+  @HostListener('document:pointerup', ['$event'])
+  protected onUp(event: PointerEvent): void {
     if (this.panDrag) {
       this.panDrag = null;
       this.panning.set(false);
@@ -461,12 +491,26 @@ export class BlockBoard {
       return;
     }
     const from = this.pending();
-    if (!from) return;
+    if (!from || this.sticky()) return;
     const target = this.hover() ? this.pins().get(this.hover()!) : undefined;
-    if (target) this.connect(from, target.row.end);
-    this.pending.set(null);
-    this.hover.set(null);
-    this.cursor.set(null);
+    if (target && !sameEnd(from, target.row.end)) {
+      // протянули и отпустили над другим портом
+      this.connect(from, target.row.end);
+      this.cancelWire();
+    } else if (isClick(this.pinDownAt, event)) {
+      // просто щёлкнули по порту: шина тянется за мышью до следующего щелчка
+      this.sticky.set(true);
+      this.message.emit(
+        'Кликните по порту, куда ведёт шина. Esc или клик в пустом месте — отмена.',
+      );
+    } else {
+      this.cancelWire();
+    }
+  }
+
+  @HostListener('document:keydown.escape')
+  protected onEscape(): void {
+    if (this.pending()) this.cancelWire();
   }
 
   private metrics(): { rect: DOMRect; base: number; offX: number; offY: number } {
@@ -541,3 +585,6 @@ export class BlockBoard {
     return port.type;
   }
 }
+
+const sameEnd = (a: BusEnd, b: BusEnd): boolean =>
+  a.node === b.node && a.port === b.port && a.path === b.path;

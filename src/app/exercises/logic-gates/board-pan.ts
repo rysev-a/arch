@@ -135,3 +135,40 @@ export function listenActivity(el: Element, set: (active: boolean) => void): () 
 
 /** Коэффициент масштаба за один «тик» колеса: плавно и в обе стороны одинаково */
 export const wheelFactor = (event: WheelEvent): number => Math.exp(-event.deltaY * 0.0025);
+
+/* ============================================================
+   Провод «тянется за мышью» после клика по контакту
+   ============================================================ */
+
+/** Сдвиг курсора (в пикселях экрана), меньше которого нажатие на контакт считается щелчком */
+export const CLICK_SLOP = 6;
+
+export const isClick = (down: { x: number; y: number }, event: PointerEvent): boolean =>
+  Math.hypot(event.clientX - down.x, event.clientY - down.y) < CLICK_SLOP;
+
+/**
+ * Пока провод тянется за мышью, любое нажатие не на контакт его отменяет. Внутри доски такое
+ * нажатие больше ничего не делает (не двигает элемент, не удаляет провод) — оно лишь отменяет.
+ * Колесо мыши (двигает доску) и кнопки масштаба провод не отменяют.
+ */
+export function listenStickyCancel(
+  board: Element,
+  isSticky: () => boolean,
+  isPin: (target: Element) => boolean,
+  cancel: () => void,
+): () => void {
+  const handler = (e: Event) => {
+    const event = e as PointerEvent;
+    if (!isSticky() || event.button === 1) return;
+    const target = event.target as Element | null;
+    if (!target || typeof target.closest !== 'function') return;
+    if (isPin(target) || target.closest('app-view-controls')) return;
+    cancel();
+    if (board.contains(target)) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  };
+  document.addEventListener('pointerdown', handler, { capture: true });
+  return () => document.removeEventListener('pointerdown', handler, { capture: true });
+}

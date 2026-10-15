@@ -86,6 +86,8 @@ import { GuideAction } from './guides';
 import {
   PanDrag,
   ZOOM,
+  isClick,
+  listenStickyCancel,
   clampWorld,
   dragPan,
   listenActivity,
@@ -292,6 +294,9 @@ export class CircuitLab {
   protected readonly cursorClient = signal<Point | null>(null);
   protected readonly movingId = signal<string | null>(null);
   protected readonly pendingFrom = signal<PinRef | null>(null);
+  /** провод «прилип» к мыши: после щелчка по контакту он тянется за курсором до следующего щелчка */
+  protected readonly pendingSticky = signal(false);
+  private pinDownAt: Point = { x: 0, y: 0 };
   protected readonly cursorBoard = signal<Point | null>(null);
   protected readonly hoveredPin = signal<PinRef | null>(null);
   protected readonly hintShown = signal(false);
@@ -324,6 +329,14 @@ export class CircuitLab {
     const el = this.boardEl()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(
+      listenStickyCancel(
+        el,
+        () => this.pendingSticky(),
+        (t) => !!t.closest('.pin-hit'),
+        () => this.cancelWire(),
+      ),
+    );
     onCleanup(listenActivity(el, (on) => this.zoomReady.set(on)));
     onCleanup(
       listenZoomWheel(
@@ -612,9 +625,26 @@ export class CircuitLab {
   protected pinDown(event: PointerEvent, node: string, pin: PinKind): void {
     event.preventDefault();
     event.stopPropagation();
+    const from = this.pendingFrom();
+    if (from && this.pendingSticky()) {
+      // провод уже тянется за мышью: этот щелчок — его конец (повторный щелчок по началу — отмена)
+      this.cancelWire();
+      if (!samePin(from, { node, pin })) this.tryConnect(from, { node, pin });
+      return;
+    }
     this.pendingFrom.set({ node, pin });
+    this.pendingSticky.set(false);
+    this.pinDownAt = { x: event.clientX, y: event.clientY };
     this.hoveredPin.set(null);
     this.cursorBoard.set(this.toBoard(event.clientX, event.clientY));
+  }
+
+  /** Отменить начатый провод */
+  protected cancelWire(): void {
+    this.pendingFrom.set(null);
+    this.pendingSticky.set(false);
+    this.hoveredPin.set(null);
+    this.cursorBoard.set(null);
   }
 
   protected pinEnter(node: string, pin: PinKind): void {
@@ -665,6 +695,10 @@ export class CircuitLab {
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
+    if (this.pendingFrom()) {
+      this.cancelWire(); // сначала отменяем провод, а полный экран остаётся
+      return;
+    }
     if (this.fullscreen()) this.fullscreen.set(false);
   }
 
@@ -1019,12 +1053,21 @@ export class CircuitLab {
     }
 
     const from = this.pendingFrom();
-    if (from) {
+    if (from && !this.pendingSticky()) {
       const target = this.hoveredPin();
-      if (target) this.tryConnect(from, target);
-      this.pendingFrom.set(null);
-      this.hoveredPin.set(null);
-      this.cursorBoard.set(null);
+      if (target && !samePin(from, target)) {
+        // протянули и отпустили над другим контактом
+        this.tryConnect(from, target);
+        this.cancelWire();
+      } else if (isClick(this.pinDownAt, event)) {
+        // просто щёлкнули по контакту: провод тянется за мышью до следующего щелчка
+        this.pendingSticky.set(true);
+        this.notify(
+          'Кликните по контакту, куда ведёт провод. Esc или клик в пустом месте — отмена.',
+        );
+      } else {
+        this.cancelWire();
+      }
     }
   }
 
