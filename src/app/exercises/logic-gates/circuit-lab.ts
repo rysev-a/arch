@@ -100,7 +100,7 @@ import {
 } from './board-pan';
 import { ViewControls } from './view-controls';
 import { AutoWire, suggestWires } from './auto-wire';
-import { SettingsService } from '../../settings/settings.service';
+import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
@@ -1385,7 +1385,7 @@ export class CircuitLab {
       inputYMap: this.inputYMap(),
       outputYMap: this.outputYMap(),
       stepsMode: this.isStepsMode(),
-      radius: this.settings.autoWireRadius(),
+      radius: this.settings.autoWireRadius() * AUTO_WIRE_RADIUS_FACTOR,
     });
   }
 

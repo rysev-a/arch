@@ -20,7 +20,7 @@ describe('страница настроек', () => {
     expect(sw.getAttribute('aria-checked')).toBe('true');
     expect(JSON.parse(localStorage.getItem('processor-settings-v1')!)).toEqual({
       autoWire: true,
-      autoWireRadius: 84,
+      autoWireRadius: 56,
     });
   });
 
@@ -40,18 +40,18 @@ describe('страница настроек', () => {
     f.detectChanges();
     const range = el.querySelector('input[type="range"]') as HTMLInputElement;
     expect(range).not.toBeNull();
-    expect(+range.value).toBe(84);
+    expect(+range.value).toBe(56);
 
-    range.value = '120';
+    range.value = '80';
     range.dispatchEvent(new Event('input'));
     f.detectChanges();
     TestBed.tick();
-    expect(settings.autoWireRadius()).toBe(120);
-    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!).autoWireRadius).toBe(120);
+    expect(settings.autoWireRadius()).toBe(80);
+    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!).autoWireRadius).toBe(80);
   });
 
   it('сохранённый радиус ограничивается допустимыми границами', () => {
     localStorage.setItem('processor-settings-v1', JSON.stringify({ autoWireRadius: 5000 }));
-    expect(TestBed.inject(SettingsService).autoWireRadius()).toBe(160);
+    expect(TestBed.inject(SettingsService).autoWireRadius()).toBe(108);
   });
 });
