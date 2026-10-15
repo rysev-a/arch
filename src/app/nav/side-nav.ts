@@ -1,4 +1,13 @@
-import { Component, computed, effect, inject, output, signal, untracked } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  computed,
+  effect,
+  inject,
+  output,
+  signal,
+  untracked,
+} from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
@@ -30,6 +39,7 @@ interface ChapterView {
 })
 export class SideNav {
   private readonly router = inject(Router);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   protected readonly roadmap = ROADMAP;
   /** выбрано упражнение или страница — панель можно закрыть (на узком экране) */
   readonly navigated = output<void>();
@@ -81,19 +91,37 @@ export class SideNav {
     return this.expanded().has(slug);
   }
 
-  /** Клик по главе: открыть её страницу; если глава уже открыта — свернуть/развернуть список */
-  protected toggle(c: ChapterView): void {
-    if (!c.active) {
-      this.expanded.update((s) => new Set(s).add(c.slug));
-      void this.router.navigate(['/', c.slug]);
-      this.navigated.emit();
-      return;
-    }
+  /** Стрелка: раскрыть или свернуть список — всегда сразу, без перехода на другую страницу */
+  protected toggleOpen(c: ChapterView, event?: Event): void {
+    const opening = !this.expanded().has(c.slug);
     this.expanded.update((s) => {
       const next = new Set(s);
       if (!next.delete(c.slug)) next.add(c.slug);
       return next;
     });
+    if (opening) {
+      const chapter = (event?.target as HTMLElement | null)?.closest('.chapter');
+      if (chapter) setTimeout(() => this.revealChapter(chapter), 240); // после раскрытия
+    }
+  }
+
+  /** Если раскрытый список ушёл за нижний край панели — плавно докручиваем панель (а не страницу) */
+  private revealChapter(chapter: Element): void {
+    const panel = this.host.nativeElement.closest('.app-side') as HTMLElement | null;
+    if (!panel) return;
+    const c = chapter.getBoundingClientRect();
+    const p = panel.getBoundingClientRect();
+    const hidden = c.bottom - (p.bottom - 12);
+    if (hidden <= 0) return;
+    // название главы должно остаться видимым
+    const room = c.top - (p.top + 8);
+    panel.scrollBy({ top: Math.min(hidden, Math.max(room, 0)), behavior: 'smooth' });
+  }
+
+  /** Название главы: открывается её страница, список при этом раскрыт */
+  protected openChapter(c: ChapterView): void {
+    this.expanded.update((s) => new Set(s).add(c.slug));
+    this.navigated.emit();
   }
 
   protected statusLabel(s: Status): string {

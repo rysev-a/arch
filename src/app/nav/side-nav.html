@@ -4,30 +4,39 @@
   </a>
   @for (c of chapters(); track c.slug) {
     <div class="chapter" [class.active]="c.active">
-      <button
-        type="button"
-        class="chapter-btn"
-        [attr.aria-expanded]="isOpen(c.slug)"
-        (click)="toggle(c)"
-      >
-        <svg
-          class="chevron"
-          [class.open]="isOpen(c.slug)"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          aria-hidden="true"
+      <div class="chapter-btn">
+        <!-- стрелка только раскрывает и сворачивает список, никуда не переходя -->
+        <button
+          type="button"
+          class="chevron-btn"
+          [attr.aria-expanded]="isOpen(c.slug)"
+          [attr.aria-label]="
+            (isOpen(c.slug) ? 'Свернуть главу «' : 'Раскрыть главу «') + c.title + '»'
+          "
+          (click)="toggleOpen(c, $event)"
         >
-          <path d="m9 6 6 6-6 6" />
-        </svg>
-        <span class="chapter-title">{{ c.title }}</span>
+          <svg
+            class="chevron"
+            [class.open]="isOpen(c.slug)"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="m9 6 6 6-6 6" />
+          </svg>
+        </button>
+        <!-- название — ссылка на страницу главы -->
+        <a class="chapter-title" [routerLink]="['/', c.slug]" (click)="openChapter(c)">
+          {{ c.title }}
+        </a>
         <span class="count" [class.all]="c.done === c.items.length">
           {{ c.done }}/{{ c.items.length }}
         </span>
-      </button>
+      </div>
 
       <div class="ex-wrap" [class.open]="isOpen(c.slug)" [attr.inert]="isOpen(c.slug) ? null : ''">
         <div class="ex-inner">
