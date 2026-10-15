@@ -620,103 +620,17 @@
       </div>
 
       <!-- ================= Таблица истинности / Сценарий ================= -->
-      <div class="card">
-        @if (isStepsMode()) {
-          <div class="card-header board-header">
-            <div>
-              <h3 class="card-title">Сценарий проверки</h3>
-              <p class="card-description">
-                Выполняйте шаги по порядку: устанавливайте тумблеры и добивайтесь нужных значений на
-                выходах
-              </p>
-            </div>
-            <span
-              class="badge"
-              [class.badge-success]="solved()"
-              [class.badge-secondary]="!solved()"
-            >
-              Шаг {{ currentStepNo() }} / {{ totalSteps() }}
-            </span>
-          </div>
-          <div class="card-content steps-panel">
-            @for (st of exercise().steps; track $index; let i = $index) {
-              <div
-                class="step-item"
-                [class.done]="i < passedSteps()"
-                [class.active]="i === passedSteps()"
-              >
-                <span class="step-no">
-                  @if (i < passedSteps()) {
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="3"
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                    >
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  } @else {
-                    {{ i + 1 }}
-                  }
-                </span>
-                <div class="step-body">
-                  <p class="step-text">{{ st.text }}</p>
-                  <div class="step-req">
-                    @if (st.pulses && st.pulses > 1) {
-                      <span class="req-chip pulses">тактов: {{ st.pulses }}</span>
-                    }
-                    @for (id of activeInputs(); track id) {
-                      <span class="req-chip" [class.hit]="inputState()[id] === st.inputs[id]">
-                        {{ inputLabel(id) }} = {{ st.inputs[id] }}
-                      </span>
-                    }
-                    <span class="req-sep">→</span>
-                    @for (o of activeOutputs(); track o) {
-                      @if (st.expect[o] !== undefined) {
-                        <span class="req-chip req-out" [class.hit]="valueAt(o) === st.expect[o]">
-                          {{ o }} = {{ st.expect[o] }}
-                        </span>
-                      }
-                    }
-                    @if (noExpectation(st)) {
-                      <span class="req-chip req-out hit">выход пока не проверяется</span>
-                    }
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-        } @else {
-          <div class="card-header board-header">
-            <div>
-              <h3
-                class="card-title"
-                title="Строка с подсветкой — текущее положение тумблеров на доске"
-              >
-                Таблица истинности
-              </h3>
-            </div>
-            <span
-              class="badge"
-              [class.badge-success]="solved()"
-              [class.badge-secondary]="!solved()"
-            >
-              {{ matched() }} / {{ exercise().target.length }}
-            </span>
-          </div>
-          <div class="card-content">
-            <app-truth-table
-              [rows]="tableRows()"
-              [currentRow]="currentRow()"
-              [inputIds]="activeInputs()"
-              [labels]="labels()"
-              [outputs]="activeOutputs()"
-            />
-          </div>
-        }
-      </div>
+      <app-check-panel
+        [exercise]="exercise()"
+        [inputState]="inputState()"
+        [valueAt]="valueAtFn"
+        [passedSteps]="passedSteps()"
+        [solved]="solved()"
+        [matched]="matched()"
+        [tableRows]="tableRows()"
+        [currentRow]="currentRow()"
+        [capHeight]="tableLayout() === 'right'"
+      />
     </div>
 
     <!-- ================= Успех ================= -->

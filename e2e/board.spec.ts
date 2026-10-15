@@ -128,7 +128,7 @@ test.describe('раскладка и высота доски', () => {
   test('таблица справа от доски по умолчанию и снизу по переключателю', async ({ page }) => {
     await openExercise(page, 'adders', 'half-adder');
     const board = page.locator('.board-card');
-    const table = page.locator('.work > .card:not(.board-card)');
+    const table = page.locator('.work > app-check-panel');
     let b = (await board.boundingBox())!;
     let t = (await table.boundingBox())!;
     expect(t.x).toBeGreaterThan(b.x + b.width - 1); // справа

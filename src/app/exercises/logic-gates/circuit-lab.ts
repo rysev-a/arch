@@ -117,6 +117,7 @@ import { WaveDiagram } from './lab/wave-diagram';
 import { SuccessAlert } from './lab/success-alert';
 import { BoardTools } from './lab/board-tools';
 import { ExerciseCard } from './lab/exercise-card';
+import { CheckPanel } from './lab/check-panel';
 import { HISTORY_MAX, Sample, buildWave } from './lab/wave';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
@@ -152,6 +153,7 @@ const DROP_ID = 'auto-new';
     SuccessAlert,
     BoardTools,
     ExerciseCard,
+    CheckPanel,
   ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
@@ -686,6 +688,9 @@ export class CircuitLab {
     this.lastStable = res.stable ? res.values : new Map();
     this.seqValues.set(res.values);
   }
+
+  /** то же, но привязано к экземпляру: можно передавать в дочерние компоненты */
+  protected readonly valueAtFn = (node: string): NodeValue => this.valueAt(node);
 
   /** значение узла с учётом режима упражнения */
   protected valueAt(node: string): NodeValue {
