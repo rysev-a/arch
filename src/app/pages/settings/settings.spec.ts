@@ -18,7 +18,7 @@ describe('страница настроек', () => {
     TestBed.tick();
     expect(settings.autoWire()).toBe(true);
     expect(sw.getAttribute('aria-checked')).toBe('true');
-    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!)).toEqual({
+    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!)).toMatchObject({
       autoWire: true,
       autoWireRadius: 56,
     });

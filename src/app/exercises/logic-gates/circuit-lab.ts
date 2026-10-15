@@ -103,7 +103,12 @@ import { PixelLock } from '../../ui/pixel-lock';
 import { DashProgress } from '../../ui/dash-progress';
 import { HintLink, HintPopover } from '../../ui/hint-popover';
 import { AutoWire, suggestWires } from './auto-wire';
-import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
+import {
+  AUTO_WIRE_RADIUS_FACTOR,
+  BOARD_HEIGHT_MAX,
+  BOARD_HEIGHT_MIN,
+  SettingsService,
+} from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
@@ -227,6 +232,11 @@ export class CircuitLab {
       };
     });
   });
+  /** где таблица истинности: под доской или справа */
+  protected readonly tableLayout = inject(SettingsService).tableLayout;
+  /** высота доски, заданная вручную (null — по пропорциям) */
+  protected readonly boardHeight = inject(SettingsService).boardHeight;
+
   protected readonly dashItems = computed(() =>
     this.exercises().map((ex, i) => ({ title: ex.title, solved: this.solvedSet().has(i) })),
   );
@@ -367,6 +377,7 @@ export class CircuitLab {
   private readonly settings = inject(SettingsService);
   private appliedSection: Section | null = null;
   private moveOffset: Point = { x: 0, y: 0 };
+  private resizeDrag: { startY: number; startH: number } | null = null;
   private moveFrom: Point = { x: 0, y: 0 };
   /** связи, предложенные в этом перетаскивании (для удержания) */
   private autoMemo: AutoWire[] = [];
@@ -1073,6 +1084,10 @@ export class CircuitLab {
 
   @HostListener('document:pointermove', ['$event'])
   private onPointerMove(event: PointerEvent): void {
+    if (this.resizeDrag) {
+      this.setBoardHeight(this.resizeDrag.startH + event.clientY - this.resizeDrag.startY);
+      return;
+    }
     if (this.panDrag) {
       this.pan.set(dragPan(this.panDrag, event));
       return;
@@ -1102,6 +1117,10 @@ export class CircuitLab {
 
   @HostListener('document:pointerup', ['$event'])
   private onPointerUp(event: PointerEvent): void {
+    if (this.resizeDrag) {
+      this.resizeDrag = null;
+      return;
+    }
     if (this.panDrag) {
       this.panDrag = null;
       this.panning.set(false);
@@ -1479,6 +1498,28 @@ export class CircuitLab {
       event.preventDefault();
       this.beginPan(event);
     }
+  }
+
+  /** Начало изменения высоты доски: тянут за ручку под ней */
+  protected resizeDown(event: PointerEvent): void {
+    const svg = this.boardEl()?.nativeElement;
+    if (!svg) return;
+    event.preventDefault();
+    this.resizeDrag = { startY: event.clientY, startH: svg.getBoundingClientRect().height };
+  }
+
+  protected resizeKey(event: KeyboardEvent): void {
+    const svg = this.boardEl()?.nativeElement;
+    const step = event.key === 'ArrowDown' ? 24 : event.key === 'ArrowUp' ? -24 : 0;
+    if (!svg || step === 0) return;
+    event.preventDefault();
+    this.setBoardHeight(svg.getBoundingClientRect().height + step);
+  }
+
+  private setBoardHeight(h: number): void {
+    this.settings.boardHeight.set(
+      Math.round(Math.min(BOARD_HEIGHT_MAX, Math.max(BOARD_HEIGHT_MIN, h))),
+    );
   }
 
   protected resetView(): void {

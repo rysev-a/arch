@@ -11,9 +11,17 @@ export const AUTO_WIRE_RADIUS_MIN = 16;
 export const AUTO_WIRE_RADIUS_MAX = 108;
 export const AUTO_WIRE_RADIUS_DEFAULT = 56;
 
+export type TableLayout = 'bottom' | 'right';
+
+/** Границы высоты доски, которую можно тянуть за нижний край (в пикселях) */
+export const BOARD_HEIGHT_MIN = 220;
+export const BOARD_HEIGHT_MAX = 1400;
+
 interface Saved {
   autoWire?: boolean;
   autoWireRadius?: number;
+  tableLayout?: TableLayout;
+  boardHeight?: number | null;
 }
 
 /** Настройки учебника: хранятся в браузере, к прогрессу не относятся */
@@ -28,10 +36,24 @@ export class SettingsService {
   /** Радиус автоподстановки: на каком расстоянии контакты считаются «близкими» */
   readonly autoWireRadius = signal(AUTO_WIRE_RADIUS_DEFAULT);
 
+  /** Где таблица истинности: под доской или справа от неё */
+  readonly tableLayout = signal<TableLayout>('right');
+
+  /** Высота доски в пикселях; null — по умолчанию (по пропорциям) */
+  readonly boardHeight = signal<number | null>(null);
+
   constructor() {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Saved | null;
       if (saved && typeof saved.autoWire === 'boolean') this.autoWire.set(saved.autoWire);
+      if (saved?.tableLayout === 'bottom' || saved?.tableLayout === 'right') {
+        this.tableLayout.set(saved.tableLayout);
+      }
+      if (typeof saved?.boardHeight === 'number' && isFinite(saved.boardHeight)) {
+        this.boardHeight.set(
+          Math.min(BOARD_HEIGHT_MAX, Math.max(BOARD_HEIGHT_MIN, saved.boardHeight)),
+        );
+      }
       if (saved && typeof saved.autoWireRadius === 'number' && isFinite(saved.autoWireRadius)) {
         this.autoWireRadius.set(
           Math.min(AUTO_WIRE_RADIUS_MAX, Math.max(AUTO_WIRE_RADIUS_MIN, saved.autoWireRadius)),
@@ -41,7 +63,12 @@ export class SettingsService {
       // нет сохранения — настройки по умолчанию
     }
     effect(() => {
-      const data: Saved = { autoWire: this.autoWire(), autoWireRadius: this.autoWireRadius() };
+      const data: Saved = {
+        autoWire: this.autoWire(),
+        autoWireRadius: this.autoWireRadius(),
+        tableLayout: this.tableLayout(),
+        boardHeight: this.boardHeight(),
+      };
       try {
         localStorage.setItem(KEY, JSON.stringify(data));
       } catch {
