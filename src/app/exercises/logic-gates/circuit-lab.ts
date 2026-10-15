@@ -100,7 +100,6 @@ import {
 } from './board-pan';
 import { ViewControls } from './view-controls';
 import { PixelLock } from '../../ui/pixel-lock';
-import { DashProgress } from '../../ui/dash-progress';
 import { HintLink, HintPopover } from '../../ui/hint-popover';
 import { AutoWire, suggestWires } from './auto-wire';
 import {
@@ -114,32 +113,16 @@ import { GuideSession } from '../../guide/guide-session';
 import { CHAPTERS, nextInCourse } from '../../pages/chapters/chapters';
 import { ConfirmService } from '../../ui/confirm.service';
 import { GuidePlayer } from '../../guide/guide-player';
+import { WaveDiagram } from './lab/wave-diagram';
+import { SuccessAlert } from './lab/success-alert';
+import { BoardTools } from './lab/board-tools';
+import { ExerciseCard } from './lab/exercise-card';
+import { HISTORY_MAX, Sample, buildWave } from './lab/wave';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
 const TICK_MS = 600;
 /** Допустимые частоты автогенератора, Гц (полный период = высокий + низкий уровень) */
 export const CLOCK_RATES = [0.5, 1, 2, 4] as const;
-/** Сколько последних изменений хранит временная диаграмма */
-const HISTORY_MAX = 24;
-
-/** Снимок сигналов после очередного изменения — один столбец временной диаграммы */
-interface Sample {
-  inputs: Partial<Record<InputId, Bit>>;
-  outputs: Record<string, NodeValue>;
-}
-
-interface WaveRow {
-  label: string;
-  kind: 'in' | 'clk' | 'out';
-  top: number;
-  /** определённые участки сигнала */
-  d: string;
-  /** неопределённые («?») участки — пунктиром посередине */
-  dx: string;
-}
-
-const WAVE = { labelW: 56, step: 26, rowH: 30, hi: 8, lo: 22, width: 56 + HISTORY_MAX * 26 };
-
 /** Один уровень «погружения»: сама доска или блок внутри неё */
 interface Level {
   title: string;
@@ -164,8 +147,11 @@ const DROP_ID = 'auto-new';
     GuidePlayer,
     ViewControls,
     PixelLock,
-    DashProgress,
     HintPopover,
+    WaveDiagram,
+    SuccessAlert,
+    BoardTools,
+    ExerciseCard,
   ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
@@ -303,30 +289,7 @@ export class CircuitLab {
   protected readonly edges = signal(0);
 
   protected readonly history = signal<Sample[]>([]);
-  protected readonly wave = computed(() => {
-    const samples = this.history();
-    const ex = this.exercise();
-    const labels = (id: InputId) => ex.labels?.[ex.inputs.indexOf(id)] ?? id;
-    const rows: WaveRow[] = [
-      ...ex.inputs.map((id) => ({
-        label: labels(id),
-        kind: (ex.clock === id ? 'clk' : 'in') as WaveRow['kind'],
-        values: samples.map((smp) => smp.inputs[id] as NodeValue),
-      })),
-      ...ex.outputs.map((o) => ({
-        label: o,
-        kind: 'out' as const,
-        values: samples.map((smp) => smp.outputs[o]),
-      })),
-    ].map((r, i) => this.waveRow(r.label, r.kind, i * WAVE.rowH, r.values));
-    const total = rows.length * WAVE.rowH;
-    return {
-      rows,
-      height: total,
-      cols: samples.map((_, i) => WAVE.labelW + i * WAVE.step),
-      lastX: WAVE.labelW + (samples.length - 1) * WAVE.step,
-    };
-  });
+  protected readonly wave = computed(() => buildWave(this.history(), this.exercise()));
 
   private clockTimer: ReturnType<typeof setTimeout> | undefined;
   private autoTimer: ReturnType<typeof setInterval> | undefined;
@@ -1088,32 +1051,6 @@ export class CircuitLab {
     this.history.set([]);
     this.recordSample();
   }
-
-  private waveRow(
-    label: string,
-    kind: WaveRow['kind'],
-    top: number,
-    values: readonly NodeValue[],
-  ): WaveRow {
-    let d = '';
-    let dx = '';
-    let prevY: number | null = null;
-    values.forEach((v, i) => {
-      const x0 = WAVE.labelW + i * WAVE.step;
-      const x1 = x0 + WAVE.step;
-      if (v === undefined) {
-        dx += `M ${x0} ${top + (WAVE.hi + WAVE.lo) / 2} H ${x1} `;
-        prevY = null;
-        return;
-      }
-      const y = top + (v === 1 ? WAVE.hi : WAVE.lo);
-      d += prevY === null ? `M ${x0} ${y} H ${x1} ` : prevY === y ? `H ${x1} ` : `V ${y} H ${x1} `;
-      prevY = y;
-    });
-    return { label, kind, top, d, dx };
-  }
-
-  protected readonly WAVE = WAVE;
 
   protected reset(): void {
     this.stopClock();

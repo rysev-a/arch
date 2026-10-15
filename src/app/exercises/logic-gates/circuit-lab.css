@@ -34,22 +34,6 @@
   }
 }
 
-/* ===================== Упражнение и степпер ===================== */
-.exercise-head {
-  flex-direction: row;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-.exercise-head-text {
-  min-width: 0;
-}
-.exercise-nav {
-  display: flex;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-
 /* ===================== Палитра ===================== */
 .palette-empty {
   margin: 0;
@@ -198,45 +182,6 @@
 .input-node.is-clock .node-box {
   stroke: hsl(var(--primary) / 0.55);
   stroke-width: 2;
-}
-
-/* ===================== Временная диаграмма ===================== */
-.wave {
-  display: block;
-  width: 100%;
-  height: auto;
-  max-height: 22rem;
-}
-.wave-grid {
-  stroke: hsl(var(--border));
-  stroke-width: 1;
-  stroke-dasharray: 2 4;
-}
-.wave-now {
-  fill: hsl(var(--primary) / 0.07);
-}
-.wave-label {
-  fill: hsl(var(--muted-foreground));
-  font-size: 12px;
-  font-weight: 700;
-}
-.wave-line {
-  fill: none;
-  stroke: hsl(var(--muted-foreground));
-  stroke-width: 2;
-  stroke-linejoin: round;
-}
-.wave-x {
-  fill: none;
-  stroke: hsl(var(--warning));
-  stroke-width: 2;
-  stroke-dasharray: 3 3;
-}
-.wave-row.clk .wave-line {
-  stroke: hsl(var(--primary));
-}
-.wave-row.out .wave-line {
-  stroke: hsl(var(--success));
 }
 
 .board-wrap {
@@ -893,104 +838,7 @@
   box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
 }
 :host-context(html.dark) .board-palette,
-:host-context(html.dark) .board-tools .tool-btn {
-  border-color: hsl(0 0% 100% / 0.16);
-  box-shadow:
-    0 0 0 1px hsl(0 0% 100% / 0.04),
-    inset 0 1px 0 hsl(0 0% 100% / 0.08),
-    0 8px 20px rgb(0 0 0 / 0.4);
-}
-.pal-sq {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  padding: 0;
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) - 3px);
-  background: hsl(var(--background));
-  cursor: grab;
-  touch-action: none;
-  user-select: none;
-  -webkit-user-select: none;
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    transform 0.15s ease;
-}
-.pal-sq:hover {
-  border-color: hsl(var(--primary) / 0.5);
-  background: hsl(var(--accent));
-  transform: translateY(-1px);
-}
-.pal-sq:active {
-  cursor: grabbing;
-  transform: none;
-}
-.pal-sq:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-.pal-sq.locked {
-  border-style: dashed;
-  background: hsl(var(--muted) / 0.5);
-  cursor: not-allowed;
-}
-.pal-sq.locked .pal-svg {
-  opacity: 0.45;
-}
-.pal-sq.locked:hover {
-  border-color: hsl(var(--border));
-  background: hsl(var(--muted) / 0.5);
-  transform: none;
-}
-.pal-svg {
-  width: 1.875rem;
-  height: 1.125rem;
-}
-.pal-lock {
-  position: absolute;
-  right: 0.125rem;
-  bottom: 0.125rem;
-  margin: 0;
-  font-size: 0.6875rem;
-}
-
-.board-tools {
-  position: absolute;
-  top: var(--bt);
-  right: var(--br);
-  z-index: 3;
-  display: flex;
-  gap: 0.375rem;
-}
-.tool-btn {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) - 2px);
-  background: hsl(var(--card) / 0.96);
-  color: hsl(var(--foreground));
-  box-shadow: 0 2px 8px rgb(0 0 0 / 0.14);
-  cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-.tool-btn:hover {
-  background: hsl(var(--accent));
-}
-.tool-btn:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-.tool-btn svg {
-  width: 1rem;
-  height: 1rem;
-}
-
+:host-context(html.dark) .board-tools 
 /* ===================== Доска и таблица истинности ===================== */
 .work {
   display: flex;
@@ -1026,46 +874,6 @@
   }
 }
 
-/* переключатель положения таблицы — как кнопки раскладки в VS Code */
-.layout-switch {
-  display: flex;
-  padding: 2px;
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) - 2px);
-  background: hsl(var(--muted) / 0.4);
-}
-.lay-btn {
-  display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  padding: 0;
-  border: none;
-  border-radius: calc(var(--radius) - 4px);
-  background: transparent;
-  color: hsl(var(--muted-foreground));
-  cursor: pointer;
-  transition:
-    background-color 0.15s ease,
-    color 0.15s ease;
-}
-.lay-btn svg {
-  width: 1.125rem;
-  height: 1.125rem;
-}
-.lay-btn:hover {
-  color: hsl(var(--foreground));
-}
-.lay-btn.on {
-  background: hsl(var(--background));
-  color: hsl(var(--foreground));
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.18);
-}
-.lay-btn:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 1px;
-}
-
 /* ручка под доской: за неё тянут, чтобы менять высоту */
 .resize-grip {
   position: absolute;
@@ -1098,55 +906,4 @@
   background: hsl(var(--accent));
   color: hsl(var(--foreground));
   outline: none;
-}
-
-/* раздел пройден: стрелка «вправо» мигает и приглашает в следующий раздел */
-.nudge {
-  border-color: hsl(var(--success));
-  color: hsl(var(--success));
-  animation: nudge-pulse 1.4s ease-in-out infinite;
-}
-.nudge svg {
-  animation: nudge-arrow 1.4s ease-in-out infinite;
-}
-@keyframes nudge-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 hsl(var(--success) / 0.5);
-    background: hsl(var(--success) / 0.1);
-  }
-  50% {
-    box-shadow: 0 0 0 6px hsl(var(--success) / 0);
-    background: hsl(var(--success) / 0.22);
-  }
-}
-@keyframes nudge-arrow {
-  0%,
-  100% {
-    opacity: 1;
-    transform: translateX(0);
-  }
-  50% {
-    opacity: 0.25;
-    transform: translateX(2px);
-  }
-}
-/* при «уменьшить анимацию» остаётся только плавное мигание прозрачности — без сдвига и расходящегося кольца */
-@media (prefers-reduced-motion: reduce) {
-  .nudge {
-    animation: none;
-    background: hsl(var(--success) / 0.18);
-  }
-  .nudge svg {
-    animation: nudge-fade 1.8s ease-in-out infinite;
-  }
-}
-@keyframes nudge-fade {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.25;
-  }
 }
