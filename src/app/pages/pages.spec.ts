@@ -92,7 +92,7 @@ describe('страницы глав', () => {
     expect(chapterProgress(mux).resume).toBe(4);
   });
 
-  it('страница главы: «Отметить решённым» засчитывает всю главу сразу, без вопросов', async () => {
+  it('страница главы: у каждого нерешённого упражнения своя кнопка, отмечает только его и без вопросов', async () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
     const asm = chapterBySlug('asm')!;
     localStorage.setItem(
@@ -102,42 +102,49 @@ describe('страницы глав', () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/asm', ChapterPage);
     const el = harness.routeNativeElement as HTMLElement;
-    const btn = () =>
-      [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
+    const marks = () =>
+      [...el.querySelectorAll('.ex-item button')].filter((b) =>
+        b.textContent!.includes('Отметить решённым'),
+      ) as HTMLButtonElement[];
     const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
-    expect(btn()!.title).toContain('потерял прогресс');
-    btn()!.click();
+    // на всю главу кнопки нет, на решённое упражнение — тоже
+    expect(el.querySelector('.head-buttons button')).toBeNull();
+    expect(marks().length).toBe(asm.exercises.length - 1);
+    expect(marks()[0].title).toContain('потерял прогресс');
+
+    marks()[1].click(); // отметить одно, не первое из нерешённых
     harness.detectChanges();
     expect(ask).not.toHaveBeenCalled();
-    expect(el.textContent).toContain(`${asm.exercises.length} из ${asm.exercises.length} решено`);
-    expect(btn()).toBeUndefined();
+    expect(el.textContent).toContain(`2 из ${asm.exercises.length} решено`);
+    expect(marks().length).toBe(asm.exercises.length - 2);
     // свой код и текущее задание на месте
     const saved = JSON.parse(localStorage.getItem(asm.storageKey)!);
     expect(saved.codes).toEqual({ upper: 'мой код' });
     expect(saved.current).toBe(3);
-    expect(saved.solved.length).toBe(asm.exercises.length);
+    expect(saved.solved.length).toBe(2);
   });
 
-  it('на главной у каждой главы есть «Отметить решённым» — без модального окна', async () => {
+  it('схемы: отметка одного упражнения открывает нужный блок и ничего лишнего', async () => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const simple = chapterBySlug('simple-circuits')!;
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/simple-circuits', ChapterPage);
+    const el = harness.routeNativeElement as HTMLElement;
+    const xorIdx = simple.exercises.findIndex((e) => e.id === 'xor');
+    const row = () => el.querySelectorAll('.ex-item')[xorIdx] as HTMLElement;
+    (row().querySelector('button') as HTMLButtonElement).click();
+    harness.detectChanges();
+    expect(row().querySelector('button')).toBeNull();
+    expect(row().textContent).toContain('решено');
+    const saved = JSON.parse(localStorage.getItem(simple.storageKey)!);
+    expect(saved.solved).toEqual([xorIdx]);
+  });
+
+  it('на главной кнопок «Отметить решённым» нет', async () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/', ChaptersPage);
     const el = harness.routeNativeElement as HTMLElement;
-    const buttons = () =>
-      [...el.querySelectorAll('.chapter-card button')].filter((b) =>
-        b.textContent!.includes('Отметить решённым'),
-      ) as HTMLButtonElement[];
-    expect(buttons().length).toBe(CHAPTERS.length);
-    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
-    const simple = chapterBySlug('simple-circuits')!;
-    const idx = CHAPTERS.findIndex((c) => c.slug === 'simple-circuits');
-    buttons()[idx].click();
-    harness.detectChanges();
-    expect(ask).not.toHaveBeenCalled();
-    const card = el.querySelectorAll('.chapter-card')[idx] as HTMLElement;
-    expect(card.textContent).toContain(
-      `${simple.exercises.length} из ${simple.exercises.length} решено`,
-    );
-    expect(buttons().length).toBe(CHAPTERS.length - 1);
+    expect(el.textContent).not.toContain('Отметить решённым');
   });
 });

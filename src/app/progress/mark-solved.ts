@@ -3,23 +3,31 @@ import { Chapter } from '../pages/chapters/chapters';
 
 /** Подсказка у кнопки «Отметить решённым» */
 export const MARK_HINT =
-  'Для тех, кто решает курс заново и потерял прогресс: все упражнения главы сразу станут решёнными';
+  'Для тех, кто решает курс заново и потерял прогресс: упражнение будет считаться решённым';
 
 /**
- * Отметить решёнными все упражнения главы — прямо в хранилище (когда страница главы открыта,
- * лабораторий с их собственным состоянием нет); без вопросов — это для тех, кто решает заново. Текущее упражнение и ваши тексты программ остаются.
+ * Отметить решённым одно упражнение главы — прямо в хранилище (когда страница главы открыта,
+ * лабораторий с их собственным состоянием нет). Текущее упражнение и ваши тексты программ остаются.
  */
-export function markChapterSolved(chapter: Chapter): void {
+export function markExerciseSolved(chapter: Chapter, exerciseId: string): void {
+  const at = chapter.exercises.findIndex((e) => e.id === exerciseId);
+  if (at < 0) return;
   try {
     const raw = JSON.parse(localStorage.getItem(chapter.storageKey) ?? 'null') as {
       codes?: unknown;
       current?: unknown;
+      solved?: unknown;
     } | null;
     const current = typeof raw?.current === 'number' ? raw.current : 0;
+    const prev = Array.isArray(raw?.solved) ? (raw!.solved as unknown[]) : [];
     const data =
       chapter.kind === 'circuit'
-        ? { solved: chapter.exercises.map((_, i) => i), current }
-        : { codes: raw?.codes ?? {}, solved: chapter.exercises.map((e) => e.id), current };
+        ? { solved: [...new Set([...(prev as number[]), at])], current }
+        : {
+            codes: raw?.codes ?? {},
+            solved: [...new Set([...(prev as string[]), exerciseId])],
+            current,
+          };
     localStorage.setItem(chapter.storageKey, JSON.stringify(data));
   } catch {
     // localStorage недоступен — отметить нечего

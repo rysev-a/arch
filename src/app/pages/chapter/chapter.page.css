@@ -42,7 +42,21 @@
 .ex-table li + li {
   border-top: 1px solid hsl(var(--border));
 }
+.ex-item {
+  display: flex;
+  align-items: center;
+}
+.mark {
+  flex: none;
+  margin-right: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+.mark:hover {
+  color: hsl(var(--foreground));
+}
 .ex-row {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 0.875rem;

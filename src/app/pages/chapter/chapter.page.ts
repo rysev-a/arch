@@ -1,7 +1,7 @@
 import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { progressVersion } from '../../nav/progress';
-import { MARK_HINT, markChapterSolved } from '../../progress/mark-solved';
+import { MARK_HINT, markExerciseSolved } from '../../progress/mark-solved';
 import { chapterBySlug, chapterProgress } from '../chapters/chapters';
 
 /** Страница главы: описание и список упражнений со статусами; у каждого упражнения своя ссылка */
@@ -30,9 +30,9 @@ export class ChapterPage {
   );
   protected readonly started = computed(() => this.progress().done > 0);
 
-  /** Для тех, кто решает заново и потерял прогресс: засчитывает всю главу одним нажатием */
-  protected markAll(): void {
-    markChapterSolved(this.chapter());
+  /** Для тех, кто решает заново и потерял прогресс: засчитывает упражнение одним нажатием */
+  protected markOne(exerciseId: string): void {
+    markExerciseSolved(this.chapter(), exerciseId);
   }
 
   protected statusLabel(s: 'solved' | 'current' | 'todo'): string {

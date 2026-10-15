@@ -1,8 +1,7 @@
 import { Component, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { progressVersion } from '../../nav/progress';
-import { MARK_HINT, markChapterSolved } from '../../progress/mark-solved';
-import { CHAPTERS, Chapter, PARTS, chapterProgress } from './chapters';
+import { CHAPTERS, PARTS, chapterProgress } from './chapters';
 
 /** Главная: все главы курса со сводкой прогресса */
 @Component({
@@ -29,11 +28,4 @@ export class ChaptersPage {
       }),
     }));
   });
-
-  protected readonly markHint = MARK_HINT;
-
-  /** Отметить главу решённой одним нажатием, без вопросов */
-  protected markAll(chapter: Chapter): void {
-    markChapterSolved(chapter);
-  }
 }

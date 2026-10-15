@@ -17,16 +17,6 @@
       <div class="head-foot">
         <span class="muted">{{ progress().done }} из {{ progress().items.length }} решено</span>
         <span class="head-buttons">
-          @if (progress().done < progress().items.length) {
-            <button
-              type="button"
-              class="btn btn-outline btn-sm"
-              (click)="markAll()"
-              [title]="markHint"
-            >
-              Отметить решённым
-            </button>
-          }
           <a class="btn btn-default btn-sm" [routerLink]="['/', chapter().slug, resumeId()]">
             {{ started() ? 'Продолжить' : 'Начать' }}
           </a>
@@ -37,12 +27,22 @@
 
   <ol class="ex-table">
     @for (e of progress().items; track e.id; let i = $index) {
-      <li>
+      <li class="ex-item">
         <a class="ex-row" [routerLink]="['/', chapter().slug, e.id]">
           <span class="num">{{ i + 1 }}</span>
           <span class="ex-name">{{ e.title }}</span>
           <span class="badge" [class]="'badge st-' + e.status">{{ statusLabel(e.status) }}</span>
         </a>
+        @if (e.status !== 'solved') {
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm mark"
+            [title]="markHint"
+            (click)="markOne(e.id)"
+          >
+            Отметить решённым
+          </button>
+        }
       </li>
     }
   </ol>
