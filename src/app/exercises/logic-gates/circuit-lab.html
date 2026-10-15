@@ -227,6 +227,22 @@
           </p>
         </div>
         <div class="board-actions">
+          <button
+            type="button"
+            class="btn btn-sm"
+            [class.btn-default]="guideOn()"
+            [class.btn-outline]="!guideOn()"
+            [disabled]="!guide()"
+            (click)="guideOn() ? leaveGuide() : startGuide()"
+            [attr.aria-pressed]="guideOn()"
+            [title]="
+              guide()
+                ? 'Пошаговый разбор: решение строится само, а каждый шаг объясняется'
+                : 'Для этого упражнения пока нет пошагового разбора'
+            "
+          >
+            {{ guideOn() ? '■ Режим авто' : '▶ Режим авто' }}
+          </button>
           @if (clockId()) {
             <div class="clock-controls" role="group" aria-label="Тактовый генератор">
               <button
@@ -431,7 +447,11 @@
 
             <!-- ================= Провода ================= -->
             @for (w of wires(); track w.id) {
-              <g class="wire" (pointerdown)="removeWire(w.id)">
+              <g
+                class="wire"
+                [class.guide-focus]="guideFocus().has(w.id)"
+                (pointerdown)="removeWire(w.id)"
+              >
                 <title>Клик — удалить провод</title>
                 <path class="wire-hit" [attr.d]="wireD(w)" />
                 <path class="wire-line" [class]="pinCls(wireValue(w))" [attr.d]="wireD(w)" />
@@ -544,6 +564,7 @@
             @for (g of gates(); track g.id) {
               <g
                 class="gate"
+                [class.guide-focus]="guideFocus().has(g.id)"
                 [class.dragging]="movingId() === g.id"
                 [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'"
                 (pointerdown)="gateDown($event, g)"
@@ -861,5 +882,24 @@
         }
       </svg>
     </div>
+  }
+
+  @if (guideOn() && guideStep(); as step) {
+    <app-guide-player
+      [title]="step.title"
+      [text]="step.text"
+      [index]="guidePos()"
+      [total]="guide()!.steps.length"
+      [busy]="ticking() || guideBusy()"
+      [solved]="solved()"
+      [hasNextExercise]="nextExercise() !== null"
+      [(open)]="guideCardOpen"
+      (prev)="guidePrev()"
+      (next)="guideNext()"
+      (goNext)="goNextExercise()"
+      (jump)="guideJump($event)"
+      (closed)="leaveGuide()"
+    />
+    <div class="guide-pad" aria-hidden="true"></div>
   }
 </div>

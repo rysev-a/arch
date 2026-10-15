@@ -5,13 +5,14 @@ import { RvLab } from './rv-lab';
 import { REAL_TASKS } from './rv-real-tasks';
 import { RV_TASKS } from './rv-tasks';
 
-function render(mode?: string) {
+function render(mode?: string, id = (mode ? REAL_TASKS : RV_TASKS)[0].id) {
   TestBed.configureTestingModule({
     providers: [
       {
         provide: ActivatedRoute,
         useValue: {
           snapshot: { data: mode ? { mode } : {} },
+          paramMap: of(convertToParamMap({ exercise: id })),
           queryParamMap: of(convertToParamMap({})),
         },
       },

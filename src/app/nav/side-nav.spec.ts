@@ -1,7 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { SideNav } from './side-nav';
-import { EXTRA_PAGES, SECTIONS } from '../sections/sections';
+import { CHAPTERS } from '../pages/chapters/chapters';
+import { SECTIONS } from '../sections/sections';
 import { touchProgress } from './progress';
 
 function render() {
@@ -17,7 +18,7 @@ describe('боковая панель', () => {
   it('показывает все главы и страницы со счётом решённого', () => {
     const el = render().nativeElement as HTMLElement;
     const buttons = el.querySelectorAll('.chapter-btn');
-    expect(buttons.length).toBe(SECTIONS.length + EXTRA_PAGES.length);
+    expect(buttons.length).toBe(CHAPTERS.length);
     expect(el.querySelector('.count')!.textContent!.trim()).toBe(
       `0/${SECTIONS[0].exercises.length}`,
     );
@@ -41,8 +42,8 @@ describe('боковая панель', () => {
     expect(items.length).toBe(SECTIONS[1].exercises.length);
     expect(items[0].textContent).toContain(SECTIONS[1].exercises[0].title);
     expect(items[0].querySelector('.status')!.classList.contains('solved')).toBe(true);
-    // после перехода глава активна, и второе упражнение — «сейчас открытое»
-    expect(items[1].querySelector('.status')!.classList.contains('current')).toBe(true);
+    // на странице главы (упражнение не открыто) «текущего» нет
+    expect(items[1].querySelector('.status')!.classList.contains('todo')).toBe(true);
     expect(items[2].querySelector('.status')!.classList.contains('todo')).toBe(true);
     expect(el.querySelectorAll('.count')[1].textContent!.trim()).toBe(
       `1/${SECTIONS[1].exercises.length}`,
@@ -51,13 +52,23 @@ describe('боковая панель', () => {
 
   it('прогресс заданий ассемблера читается по id', () => {
     const f = render();
-    const a = EXTRA_PAGES[0];
-    localStorage.setItem(a.storageKey, JSON.stringify({ solved: [a.tasks[0].id], current: 0 }));
+    const idx = CHAPTERS.findIndex((c) => c.slug === 'asm');
+    const a = CHAPTERS[idx];
+    localStorage.setItem(a.storageKey, JSON.stringify({ solved: [a.exercises[0].id], current: 0 }));
     touchProgress();
     f.detectChanges();
-    const idx = SECTIONS.length;
     expect(
       (f.nativeElement as HTMLElement).querySelectorAll('.count')[idx].textContent!.trim(),
-    ).toBe(`1/${a.tasks.length}`);
+    ).toBe(`1/${a.exercises.length}`);
+  });
+
+  it('у каждого упражнения своя ссылка: /<глава>/<упражнение>', async () => {
+    const f = render();
+    const el = f.nativeElement as HTMLElement;
+    (el.querySelectorAll('.chapter-btn')[0] as HTMLButtonElement).click();
+    await f.whenStable();
+    f.detectChanges();
+    const first = el.querySelector('.ex') as HTMLAnchorElement;
+    expect(first.getAttribute('href')).toBe(`/${SECTIONS[0].slug}/${SECTIONS[0].exercises[0].id}`);
   });
 });

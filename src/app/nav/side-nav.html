@@ -1,4 +1,7 @@
 <nav class="side-nav" aria-label="Разделы курса">
+  <a class="home-link" [class.active]="onHome()" routerLink="/" (click)="navigated.emit()">
+    Все главы
+  </a>
   @for (c of chapters(); track c.slug) {
     <div class="chapter" [class.active]="c.active">
       <button
@@ -32,9 +35,8 @@
             <li>
               <a
                 class="ex"
-                [class.current]="e.status === 'current'"
-                [routerLink]="['/', c.slug]"
-                [queryParams]="query(c, e.id)"
+                [class.current]="e.open"
+                [routerLink]="['/', c.slug, e.id]"
                 (click)="navigated.emit()"
               >
                 <span

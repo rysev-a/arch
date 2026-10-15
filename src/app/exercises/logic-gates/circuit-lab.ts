@@ -86,6 +86,11 @@ import {
 } from './gate-shapes';
 import { SECTIONS, Section } from '../../sections/sections';
 import { touchProgress } from '../../nav/progress';
+import { GuideAction } from './guides';
+import { guideFor } from './guide-registry';
+import { GuideSession } from '../../guide/guide-session';
+import { nextInCourse } from '../../pages/chapters/chapters';
+import { GuidePlayer } from '../../guide/guide-player';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
 const TICK_MS = 600;
@@ -125,7 +130,7 @@ interface Level {
 
 @Component({
   selector: 'app-circuit-lab',
-  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet],
+  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet, GuidePlayer],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
 })
@@ -282,7 +287,6 @@ export class CircuitLab {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
-  private appliedStart: string | null = null;
   private appliedSection: Section | null = null;
   private moveOffset: Point = { x: 0, y: 0 };
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
@@ -340,25 +344,23 @@ export class CircuitLab {
     const section = this.section();
     const start = this.startExercise();
     const load = this.loadSaved();
-    // параметры ссылки убрали из адреса — доску, которую только что собрали, не трогаем
-    if (!start && this.appliedStart && this.appliedSection === section) {
-      this.appliedStart = null;
-      return;
-    }
     const progress = this.loadProgress(section);
-    this.solvedSet.set(progress.solved);
     const wanted = start ? section.exercises.findIndex((e) => e.id === start) : -1;
-    this.currentIndex.set(wanted >= 0 ? wanted : progress.current);
+    const index = wanted >= 0 ? wanted : progress.current;
+    // адрес сменился на то упражнение, которое уже открыто (например, после «Дальше»
+    // или после того, как из адреса убрали ?edit=1): доску не трогаем
+    if (this.appliedSection === section && untracked(this.currentIndex) === index && !load) return;
+    this.solvedSet.set(progress.solved);
+    this.currentIndex.set(index);
     // clearBoard читает другие сигналы — подписываться на них эффект не должен
     untracked(() => {
       this.clearBoard();
-      if (wanted >= 0) {
-        if (load) this.restoreSaved();
-        this.persist();
-        this.appliedStart = start;
-        this.appliedSection = section;
+      if (load) this.restoreSaved();
+      this.persist();
+      this.appliedSection = section;
+      if (load) {
         this.router.navigate([], {
-          queryParams: { ex: null, edit: null },
+          queryParams: { edit: null },
           queryParamsHandling: 'merge',
           replaceUrl: true,
         });
@@ -460,11 +462,12 @@ export class CircuitLab {
      Переключение упражнений
      ============================================================ */
 
+  /** Переход к упражнению — это переход по адресу /<глава>/<упражнение>; доску сменит sectionEffect */
   protected selectExercise(index: number): void {
     if (index === this.currentIndex()) return;
-    this.currentIndex.set(index);
-    this.clearBoard();
-    this.persist();
+    const ex = this.exercises()[index];
+    if (!ex) return;
+    void this.router.navigate(['/', this.section().slug, ex.id]);
   }
 
   protected next(): void {
@@ -712,8 +715,8 @@ export class CircuitLab {
     ) {
       return;
     }
-    this.router.navigate(['/', src.sectionSlug], {
-      queryParams: { ex: src.exerciseId, edit: 1 },
+    this.router.navigate(['/', src.sectionSlug, src.exerciseId], {
+      queryParams: { edit: 1 },
     });
   }
 
@@ -754,15 +757,17 @@ export class CircuitLab {
      ============================================================ */
 
   /** один полный период: CLK = 1 на время TICK_MS, затем снова 0 */
-  protected tick(): void {
+  protected tick(done?: () => void): boolean {
     const id = this.clockId();
-    if (!id || this.ticking() || this.auto() || this.clockLevel() === 1) return;
+    if (!id || this.ticking() || this.auto() || this.clockLevel() === 1) return false;
     this.ticking.set(true);
     this.setInput(id, 1);
     this.clockTimer = setTimeout(() => {
       this.setInput(id, 0);
       this.ticking.set(false);
+      done?.();
     }, TICK_MS);
+    return true;
   }
 
   protected toggleAuto(): void {
@@ -940,6 +945,227 @@ export class CircuitLab {
       this.pendingFrom.set(null);
       this.hoveredPin.set(null);
       this.cursorBoard.set(null);
+    }
+  }
+
+  /* ============================================================
+     Режим авто: пошаговый разбор (учебник + тренажёр)
+     ============================================================ */
+
+  /** Разбор для текущего упражнения; null — для него разбора пока нет */
+  protected readonly guide = computed(() => guideFor(this.section().slug, this.exercise().id));
+  protected readonly guideOn = signal(false);
+  /** номер показанного шага (0 — вступление) */
+  protected readonly guidePos = signal(0);
+  protected readonly guideCardOpen = signal(true);
+  /** что шаг только что добавил на доске: подсвечивается */
+  protected readonly guideFocus = signal<ReadonlySet<string>>(new Set());
+  /** идёт серия импульсов такта: «Вперёд» ждёт её окончания */
+  protected readonly guideBusy = signal(false);
+  private readonly session = inject(GuideSession);
+  private guideGates = new Map<string, string>();
+
+  protected readonly guideStep = computed(() => this.guide()?.steps[this.guidePos()] ?? null);
+
+  /** Куда ведёт «Следующее упражнение» на последнем шаге: дальше по курсу, в том числе в ассемблер */
+  protected readonly nextExercise = computed(() =>
+    nextInCourse(this.section().slug, this.exercise().id),
+  );
+
+  /**
+   * Режим авто «залипает»: пока он включён, каждое упражнение открывается в нём.
+   * При смене упражнения доска чистая, поэтому разбор стартует без вопросов.
+   */
+  private readonly guideSyncEffect = effect(() => {
+    this.section();
+    this.currentIndex();
+    const wantAuto = this.session.auto();
+    const available = this.guide() !== null;
+    const edit = this.loadSaved();
+    untracked(() => {
+      if (wantAuto && available && !edit && this.guideBlocksReady(true)) this.beginGuide();
+      else this.stopGuide();
+    });
+  });
+
+  /** Кнопка «Режим авто» на доске */
+  protected startGuide(): void {
+    if (!this.guide()) return;
+    const hasWork = (this.instances().length > 0 || this.gates().length > 0) && !this.solved();
+    if (hasWork && !confirm('Режим авто начнёт с чистой доски: ваша схема пропадёт. Продолжить?')) {
+      return;
+    }
+    if (!this.guideBlocksReady(true)) return;
+    this.session.auto.set(true);
+    this.beginGuide();
+  }
+
+  /** Разбор «из блоков» нужны решения предыдущих упражнений; без них блоки в палитре закрыты */
+  private guideBlocksReady(announce: boolean): boolean {
+    const lib = this.library();
+    const missing = new Set<string>();
+    for (const step of this.guide()?.steps ?? []) {
+      for (const a of step.do ?? []) {
+        if ('block' in a && !lib.available(a.block.blockId)) missing.add(a.block.blockId);
+      }
+    }
+    if (missing.size === 0) return true;
+    if (announce) {
+      this.notify(
+        `Для разбора нужны блоки из предыдущих упражнений (${[...missing].join(', ')}): ` +
+          'пройдите их — можно тоже в режиме авто.',
+      );
+    }
+    return false;
+  }
+
+  private beginGuide(): void {
+    this.stopClock();
+    this.clearBoard();
+    this.guideGates = new Map();
+    this.guideFocus.set(new Set());
+    this.guideBusy.set(false);
+    this.guidePos.set(0);
+    this.guideCardOpen.set(true);
+    this.guideOn.set(true);
+  }
+
+  /** «Выйти»: режим выключается и для следующих упражнений; схема остаётся на доске */
+  protected leaveGuide(): void {
+    this.session.auto.set(false);
+    this.stopGuide();
+  }
+
+  protected stopGuide(): void {
+    if (!this.guideOn()) return;
+    this.guideOn.set(false);
+    this.guideBusy.set(false);
+    this.guideFocus.set(new Set());
+  }
+
+  /** На последнем шаге «Вперёд» превращается в переход к следующему упражнению */
+  protected goNextExercise(): void {
+    const next = this.nextExercise();
+    if (!next) return;
+    void this.router.navigate(['/', next.slug, next.id]);
+  }
+
+  @HostListener('document:keydown.arrowright', ['$event'])
+  protected onGuideRight(e: Event): void {
+    if (this.guideOn() && !this.isTyping(e)) this.guideNext();
+  }
+
+  @HostListener('document:keydown.arrowleft', ['$event'])
+  protected onGuideLeft(e: Event): void {
+    if (this.guideOn() && !this.isTyping(e)) this.guidePrev();
+  }
+
+  private isTyping(e: Event): boolean {
+    const t = e.target as HTMLElement | null;
+    return !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.tagName === 'INPUT');
+  }
+
+  protected guideNext(): void {
+    const guide = this.guide();
+    if (!guide || this.ticking() || this.guideBusy() || this.guidePos() >= guide.steps.length - 1)
+      return;
+    const pos = this.guidePos() + 1;
+    this.guidePos.set(pos);
+    this.guideCardOpen.set(true);
+    this.applyGuideStep(pos, true);
+  }
+
+  protected guidePrev(): void {
+    if (this.guidePos() > 0) this.guideJump(this.guidePos() - 1);
+  }
+
+  /** Перейти к шагу: доска собирается заново и повторяет все шаги до него */
+  protected guideJump(target: number): void {
+    const guide = this.guide();
+    if (!guide) return;
+    const n = Math.max(0, Math.min(target, guide.steps.length - 1));
+    if (n === this.guidePos() && this.guideOn()) return;
+    this.stopClock();
+    this.clearBoard();
+    this.guideGates = new Map();
+    let passed = -1;
+    for (let i = 1; i <= n; i++) {
+      this.applyGuideStep(i, false);
+      const c = guide.steps[i].completes;
+      if (c !== undefined) passed = Math.max(passed, c);
+    }
+    if (n === 0) this.guideFocus.set(new Set());
+    // шаги сценария упражнения, которые разбор уже прошёл
+    this.passedSteps.set(passed + 1);
+    this.guidePos.set(n);
+    this.guideCardOpen.set(true);
+  }
+
+  /** Выполнить действия шага на доске; live — импульс такта идёт по-настоящему, с задержкой */
+  private applyGuideStep(index: number, live: boolean): void {
+    const step = this.guide()?.steps[index];
+    const focus = new Set<string>();
+    for (const action of step?.do ?? []) this.applyGuideAction(action, live, focus);
+    this.guideFocus.set(focus);
+    this.afterEdit();
+  }
+
+  /** Серия настоящих тактовых импульсов с паузами, пока доска показывает каждый фронт */
+  private pulseSeries(count: number): void {
+    this.guideBusy.set(true);
+    let left = count;
+    const next = () => {
+      if (left-- <= 0 || !this.guideOn()) {
+        this.guideBusy.set(false);
+        return;
+      }
+      if (!this.tick(next)) this.guideBusy.set(false);
+    };
+    next();
+  }
+
+  private applyGuideAction(action: GuideAction, live: boolean, focus: Set<string>): void {
+    if ('place' in action) {
+      const id = uid('g');
+      this.guideGates.set(action.name, id);
+      const x = this.clamp(action.at.x - GATE_W / 2, GATE_MIN_X, GATE_MAX_X);
+      const y = this.clamp(action.at.y - GATE_H / 2, GATE_MIN_Y, GATE_MAX_Y);
+      this.gates.update((list) => [...list, { id, type: action.place, x, y }]);
+      focus.add(id);
+    } else if ('wire' in action) {
+      const node = (name: string) => this.guideGates.get(name) ?? name;
+      const { from, to, pin } = action.wire;
+      const target: PinRef = { node: node(to), pin };
+      const id = uid('w');
+      this.wires.update((list) => [
+        ...list.filter((w) => !samePin(w.to, target)),
+        { id, from: { node: node(from), pin: 'out' }, to: target },
+      ]);
+      focus.add(id);
+    } else if ('block' in action) {
+      const { id, blockId, x, y } = action.block;
+      this.instances.update((list) => [...list, { id, blockId, x, y }]);
+      focus.add(id);
+    } else if ('bus' in action) {
+      const { id, from, to } = action.bus;
+      this.busWires.update((list) => [...list, { id, from, to }]);
+      focus.add(id);
+    } else if ('set' in action) {
+      for (const [id, level] of Object.entries(action.set)) this.setInput(id as InputId, level);
+    } else {
+      const count = action.pulse === true ? 1 : action.pulse;
+      if (live) {
+        this.pulseSeries(count);
+      } else {
+        // при повторе шагов импульсы «прокручиваются» мгновенно
+        const clk = this.clockId();
+        if (clk) {
+          for (let i = 0; i < count; i++) {
+            this.setInput(clk, 1);
+            this.setInput(clk, 0);
+          }
+        }
+      }
     }
   }
 

@@ -2,22 +2,20 @@ import { Component, computed, effect, inject, output, signal, untracked } from '
 import { toSignal } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map, startWith } from 'rxjs';
-import { EXTRA_PAGES, ROADMAP, SECTIONS } from '../sections/sections';
-import { progressVersion, readProgress } from './progress';
-
-type Status = 'solved' | 'current' | 'todo';
+import { CHAPTERS, Status, chapterProgress } from '../pages/chapters/chapters';
+import { ROADMAP } from '../sections/sections';
+import { progressVersion } from './progress';
 
 interface Item {
   id: string;
   title: string;
   status: Status;
+  open: boolean;
 }
 
-interface Chapter {
+interface ChapterView {
   slug: string;
   title: string;
-  /** какой query-параметр понимает страница, чтобы открыть упражнение */
-  param: 'ex' | 'task';
   items: Item[];
   done: number;
   active: boolean;
@@ -45,64 +43,46 @@ export class SideNav {
     { requireSync: true },
   );
 
-  protected readonly activeSlug = computed(() => this.url().split(/[/?#]/)[1] ?? '');
+  /** адрес вида /<глава>/<упражнение>?… */
+  private readonly segments = computed(() =>
+    this.url().split(/[?#]/)[0].split('/').filter(Boolean),
+  );
+  protected readonly activeSlug = computed(() => this.segments()[0] ?? '');
+  private readonly openExercise = computed(() => this.segments()[1]);
+  protected readonly onHome = computed(() => this.segments().length === 0);
   protected readonly expanded = signal<ReadonlySet<string>>(new Set());
 
-  /** Открытая страница всегда раскрыта */
+  /** Открытая глава всегда раскрыта */
   private readonly openActive = effect(() => {
     const slug = this.activeSlug();
     untracked(() => this.expanded.update((s) => new Set(s).add(slug)));
   });
 
-  protected readonly chapters = computed<Chapter[]>(() => {
+  protected readonly chapters = computed<ChapterView[]>(() => {
     progressVersion();
     const active = this.activeSlug();
-    const status = (solved: boolean, current: boolean, isActive: boolean): Status =>
-      solved ? 'solved' : current && isActive ? 'current' : 'todo';
-
-    const sections = SECTIONS.map((s): Chapter => {
-      const p = readProgress(`processor-progress-v2-${s.progressKey}`);
-      const isActive = s.slug === active;
-      const items = s.exercises.map((e, i) => ({
-        id: e.id,
-        title: e.title,
-        status: status(p.solved.has(i), p.current === i, isActive),
-      }));
-      return {
-        slug: s.slug,
-        title: s.title,
-        param: 'ex',
-        items,
-        done: items.filter((x) => x.status === 'solved').length,
-        active: isActive,
-      };
+    const open = this.openExercise();
+    return CHAPTERS.map((c) => {
+      const isActive = c.slug === active;
+      const p = chapterProgress(c, isActive ? open : undefined);
+      // на странице главы (без упражнения) «текущее» не подсвечиваем
+      const items =
+        isActive && !open
+          ? p.items.map((i) => ({
+              ...i,
+              status: i.status === 'current' ? ('todo' as Status) : i.status,
+            }))
+          : p.items;
+      return { slug: c.slug, title: c.title, items, done: p.done, active: isActive };
     });
-    const extras = EXTRA_PAGES.map((x): Chapter => {
-      const p = readProgress(x.storageKey);
-      const isActive = x.slug === active;
-      const items = x.tasks.map((t, i) => ({
-        id: t.id,
-        title: t.title,
-        status: status(p.solved.has(t.id), p.current === i, isActive),
-      }));
-      return {
-        slug: x.slug,
-        title: x.title,
-        param: 'task',
-        items,
-        done: items.filter((i) => i.status === 'solved').length,
-        active: isActive,
-      };
-    });
-    return [...sections, ...extras];
   });
 
   protected isOpen(slug: string): boolean {
     return this.expanded().has(slug);
   }
 
-  /** Клик по главе: раскрыть/свернуть; если открыта другая страница — перейти на неё */
-  protected toggle(c: Chapter): void {
+  /** Клик по главе: открыть её страницу; если глава уже открыта — свернуть/развернуть список */
+  protected toggle(c: ChapterView): void {
     if (!c.active) {
       this.expanded.update((s) => new Set(s).add(c.slug));
       void this.router.navigate(['/', c.slug]);
@@ -114,10 +94,6 @@ export class SideNav {
       if (!next.delete(c.slug)) next.add(c.slug);
       return next;
     });
-  }
-
-  protected query(c: Chapter, id: string): Record<string, string> {
-    return { [c.param]: id };
   }
 
   protected statusLabel(s: Status): string {

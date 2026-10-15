@@ -1,0 +1,100 @@
+<div class="guide" role="region" aria-label="Режим авто: пошаговый разбор">
+  @if (open()) {
+    <section class="explain pop-in" role="dialog" aria-live="polite" [attr.aria-label]="title()">
+      <header class="explain-head">
+        <span class="step-no">Шаг {{ index() + 1 }} из {{ total() }}</span>
+        <h3 class="explain-title">{{ title() }}</h3>
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="open.set(false)"
+          title="Свернуть окно"
+          aria-label="Свернуть окно с объяснением"
+        >
+          ✕
+        </button>
+      </header>
+      <div class="explain-body">
+        @for (p of paragraphs(); track $index) {
+          <p>
+            @for (r of p; track $index) {
+              @if (r.strong) {
+                <strong>{{ r.text }}</strong>
+              } @else {
+                {{ r.text }}
+              }
+            }
+          </p>
+        }
+        @if (log().length) {
+          <pre class="trace mono">{{ log().join('\n') }}</pre>
+        }
+      </div>
+    </section>
+  }
+
+  <div class="bar">
+    <button
+      type="button"
+      class="btn btn-outline btn-sm nav-btn"
+      (click)="prev.emit()"
+      [disabled]="!canPrev()"
+      title="Отменить последнее действие (←)"
+    >
+      ◀ Назад
+    </button>
+
+    <div class="timeline">
+      <div class="timeline-top">
+        <span class="mode-name">Режим авто</span>
+        <span class="now" [title]="title()">{{ index() + 1 }}/{{ total() }} · {{ title() }}</span>
+        @if (solved()) {
+          <span class="badge badge-success">решено</span>
+        }
+      </div>
+      <input
+        type="range"
+        class="slider"
+        min="0"
+        [max]="total() - 1"
+        [value]="index()"
+        [style.--fill.%]="percent()"
+        (change)="onSlider($event)"
+        aria-label="Шаг разбора"
+      />
+    </div>
+
+    <button
+      type="button"
+      class="btn btn-default btn-sm nav-btn"
+      (click)="last() ? goNext.emit() : next.emit()"
+      [disabled]="!canNext()"
+      [title]="
+        last()
+          ? 'Перейти к следующему упражнению — тоже в режиме авто'
+          : 'Выполнить следующее действие (→)'
+      "
+    >
+      {{ last() ? (hasNextExercise() ? 'Следующее упражнение ▶' : 'Это конец курса') : 'Вперёд ▶' }}
+    </button>
+
+    @if (!open()) {
+      <button
+        type="button"
+        class="btn btn-outline btn-sm"
+        (click)="open.set(true)"
+        title="Показать объяснение"
+      >
+        Объяснение
+      </button>
+    }
+    <button
+      type="button"
+      class="btn btn-outline btn-sm"
+      (click)="closed.emit()"
+      title="Выйти из режима авто (схема останется на доске)"
+    >
+      Выйти
+    </button>
+  </div>
+</div>

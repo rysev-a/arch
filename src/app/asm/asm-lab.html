@@ -36,6 +36,22 @@
           <div class="asm-buttons">
             <button
               type="button"
+              class="btn btn-sm"
+              [class.btn-default]="gc.on()"
+              [class.btn-outline]="!gc.on()"
+              [disabled]="!guide()"
+              (click)="gc.on() ? gc.leave() : gc.start()"
+              [attr.aria-pressed]="gc.on()"
+              [title]="
+                guide()
+                  ? 'Пошаговый разбор: программа пишется сама, а каждый шаг объясняется'
+                  : 'Для этого задания пока нет пошагового разбора'
+              "
+            >
+              {{ gc.on() ? '■ Режим авто' : '▶ Режим авто' }}
+            </button>
+            <button
+              type="button"
               class="btn btn-outline btn-sm"
               (click)="hintShown.set(!hintShown())"
             >
@@ -58,12 +74,13 @@
             spellcheck="false"
             rows="16"
             [value]="source()"
+            [readOnly]="gc.on()"
             (input)="onInput($event)"
             (keydown)="onKey($event)"
             aria-label="Текст программы на ассемблере"
           ></textarea>
 
-          @if (asm().errors.length > 0) {
+          @if (asm().errors.length > 0 && !gc.on()) {
             <ul class="asm-errors" role="alert">
               @for (e of asm().errors; track $index) {
                 <li>
@@ -326,4 +343,23 @@
       </table>
     </div>
   </div>
+
+  @if (gc.on() && gc.step(); as step) {
+    <app-guide-player
+      [title]="step.title"
+      [text]="step.text"
+      [log]="gc.log()"
+      [index]="gc.pos()"
+      [total]="guide()!.steps.length"
+      [solved]="result()?.ok === true"
+      [hasNextExercise]="gc.hasNext()"
+      [(open)]="gc.cardOpen"
+      (prev)="gc.prev()"
+      (next)="gc.next()"
+      (goNext)="gc.goNext()"
+      (jump)="gc.jump($event)"
+      (closed)="gc.leave()"
+    />
+    <div class="guide-pad" aria-hidden="true"></div>
+  }
 </div>

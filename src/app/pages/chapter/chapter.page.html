@@ -1,0 +1,37 @@
+<div class="chapter-page">
+  <div class="card">
+    <div class="card-header">
+      <h2 class="card-title page-title">{{ chapter().title }}</h2>
+      <p class="card-description">{{ chapter().description }}</p>
+    </div>
+    <div class="card-content">
+      <div
+        class="bar"
+        role="progressbar"
+        [attr.aria-valuenow]="percent()"
+        aria-valuemin="0"
+        aria-valuemax="100"
+      >
+        <span class="bar-fill" [style.width.%]="percent()"></span>
+      </div>
+      <div class="head-foot">
+        <span class="muted">{{ progress().done }} из {{ progress().items.length }} решено</span>
+        <a class="btn btn-default btn-sm" [routerLink]="['/', chapter().slug, resumeId()]">
+          {{ started() ? 'Продолжить' : 'Начать' }}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <ol class="ex-table">
+    @for (e of progress().items; track e.id; let i = $index) {
+      <li>
+        <a class="ex-row" [routerLink]="['/', chapter().slug, e.id]">
+          <span class="num">{{ i + 1 }}</span>
+          <span class="ex-name">{{ e.title }}</span>
+          <span class="badge" [class]="'badge st-' + e.status">{{ statusLabel(e.status) }}</span>
+        </a>
+      </li>
+    }
+  </ol>
+</div>

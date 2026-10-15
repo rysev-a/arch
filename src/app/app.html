@@ -1,6 +1,6 @@
 <header class="app-header">
   <div class="app-header-inner">
-    <div class="brand">
+    <a class="brand" routerLink="/" aria-label="На главную — все главы">
       <span class="brand-badge" aria-hidden="true">
         <svg
           viewBox="0 0 24 24"
@@ -17,7 +17,7 @@
         <h1 class="app-title">Как работает процессор</h1>
         <p class="app-subtitle">Интерактивный тренажёр: от логических элементов к схемам</p>
       </div>
-    </div>
+    </a>
 
     <div class="header-actions">
       <button
@@ -82,6 +82,7 @@
 
   <div class="app-content">
     <main class="app-main">
+      <app-breadcrumbs />
       <router-outlet />
     </main>
 

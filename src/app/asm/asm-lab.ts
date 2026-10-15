@@ -8,6 +8,11 @@ import { CpuInspector } from '../cpu8/cpu-inspector';
 import { GateMachine } from '../cpu8/gate-machine';
 import { Machine, MachineView } from './machine';
 import { AsmTask, CheckResult, TASKS, hex } from './tasks';
+import { GuidePlayer } from '../guide/guide-player';
+import { GuideSession } from '../guide/guide-session';
+import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guide';
+import { codeGuideFor } from '../guide/code-registry';
+import { nextInCourse } from '../pages/chapters/chapters';
 
 const STORAGE_KEY = 'processor-asm-v1';
 const RUN_LIMIT = 100_000;
@@ -34,7 +39,7 @@ type Runner = Machine | GateMachine;
 
 @Component({
   selector: 'app-asm-lab',
-  imports: [CpuInspector],
+  imports: [CpuInspector, GuidePlayer],
   templateUrl: './asm-lab.html',
   styleUrl: './asm-lab.css',
 })
@@ -55,7 +60,11 @@ export class AsmLab {
   protected readonly engine = signal<'emu' | 'gates'>('emu');
 
   protected readonly task = computed<AsmTask>(() => TASKS[this.index()]);
-  protected readonly source = computed(() => this.codes()[this.task().id] ?? this.task().starter);
+  /** Текст, который печатает режим авто; пока он есть, он заменяет ваш код (ваш не трогаем) */
+  protected readonly guideCode = signal<string | null>(null);
+  protected readonly source = computed(
+    () => this.guideCode() ?? this.codes()[this.task().id] ?? this.task().starter,
+  );
   protected readonly asm = computed<AsmResult>(() => assemble(this.source()));
 
   /** Любое действие с машиной увеличивает счётчик — так интерфейс узнаёт об изменениях */
@@ -140,20 +149,58 @@ export class AsmLab {
     }
   });
 
-  /** Ссылка вида ?task=<id> (из боковой панели) открывает нужное задание */
+  /** Адрес /<глава>/<задание>: какое задание открыто, определяет адрес */
   private readonly router = inject(Router);
-  private readonly queryParams = toSignal(this.route.queryParamMap, { requireSync: true });
+  private readonly params = toSignal(this.route.paramMap, { requireSync: true });
   private readonly taskParamEffect = effect(() => {
-    const id = this.queryParams().get('task');
-    if (!id) return;
+    const id = this.params().get('exercise');
+    const i = this.tasks.findIndex((t) => t.id === id);
+    if (i < 0 || i === untracked(this.index)) return;
     untracked(() => {
-      const i = this.tasks.findIndex((t) => t.id === id);
-      if (i >= 0) this.selectTask(i);
-      this.router.navigate([], {
-        queryParams: { task: null },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
+      this.index.set(i);
+      this.hintShown.set(false);
+      this.solutionShown.set(false);
+      this.selectedLine.set(null);
+      this.save();
+    });
+  });
+
+  /* ---------- режим авто ---------- */
+  private readonly session = inject(GuideSession);
+  protected readonly guide = computed(() => codeGuideFor('asm', this.task().id));
+  private readonly guideHost: CodeGuideHost = {
+    guide: () => this.guide(),
+    setCode: (code) => this.guideCode.set(code),
+    resetMachine: () => this.resets.update((n) => n + 1),
+    exec: (n) => {
+      const m = this.machine();
+      if (!m) return ['Программа пока не собирается: проверьте текст.'];
+      const listing = this.asm().lines;
+      const lines = traceRun(m, n, {
+        insnAt: (pc) => listing.find((l) => l.addr === pc)?.text ?? '?',
+        regName: (i) => `r${i}`,
+        fmtReg: (v) => `${v} (0x${v.toString(16).toUpperCase().padStart(2, '0')})`,
+        fmtAddr: (a) => `0x${a.toString(16).toUpperCase().padStart(2, '0')}`,
+        fmtPc: (pc) => String(pc),
+        fmtByte: (v) => `${v} (0x${v.toString(16).toUpperCase().padStart(2, '0')})`,
+        insnSize: 1,
       });
+      this.version.update((v) => v + 1);
+      return lines;
+    },
+    next: () => nextInCourse('asm', this.task().id),
+    go: (to) => void this.router.navigate(['/', to.slug, to.id]),
+  };
+  protected readonly gc = new CodeGuideController(this.guideHost, this.session);
+
+  /** Режим авто «залипает»: пока он включён, каждое задание открывается в нём */
+  private readonly guideSyncEffect = effect(() => {
+    this.task();
+    const want = this.session.auto();
+    const available = this.guide() !== null;
+    untracked(() => {
+      if (want && available) this.gc.begin();
+      else this.gc.stop();
     });
   });
 
@@ -204,13 +251,10 @@ export class AsmLab {
     el.dispatchEvent(new Event('input'));
   }
 
+  /** Переход к заданию — это переход по адресу; состояние сменит taskParamEffect */
   protected selectTask(i: number): void {
     if (i === this.index()) return;
-    this.index.set(i);
-    this.hintShown.set(false);
-    this.solutionShown.set(false);
-    this.selectedLine.set(null);
-    this.save();
+    void this.router.navigate(['/', 'asm', this.tasks[i].id]);
   }
 
   protected step(): void {

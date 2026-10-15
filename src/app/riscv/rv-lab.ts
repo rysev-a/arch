@@ -2,13 +2,18 @@ import { Component, computed, effect, inject, signal, untracked } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router } from '@angular/router';
 import { touchProgress } from '../nav/progress';
-import { ABI_NAMES, OPS, PSEUDO, fieldsOf } from './rv-isa';
+import { ABI_NAMES, OPS, PSEUDO, disassemble, fieldsOf } from './rv-isa';
 import { AsmResult, STACK_TOP, assemble } from './rv-asm';
 import { MMIO_MAP, RvMachine, RvView } from './rv-machine';
 import { CheckResult, RV_TASKS, RvTask, fullSource } from './rv-tasks';
 import { REAL_TASKS } from './rv-real-tasks';
 import { ProjectFile, projectFiles, projectZip } from './rv-project';
 import { makeZip } from './zip';
+import { GuidePlayer } from '../guide/guide-player';
+import { GuideSession } from '../guide/guide-session';
+import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guide';
+import { codeGuideFor } from '../guide/code-registry';
+import { nextInCourse } from '../pages/chapters/chapters';
 
 const STORAGE_KEY = 'processor-riscv-v1';
 const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
@@ -42,6 +47,7 @@ const hex8 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0'
  */
 @Component({
   selector: 'app-rv-lab',
+  imports: [GuidePlayer],
   templateUrl: './rv-lab.html',
   styleUrl: './rv-lab.css',
 })
@@ -70,7 +76,11 @@ export class RvLab {
   protected readonly windowId = signal('text');
 
   protected readonly task = computed<RvTask>(() => this.tasks[this.index()]);
-  protected readonly source = computed(() => this.codes()[this.task().id] ?? this.task().starter);
+  /** Текст, который печатает режим авто; пока он есть, он заменяет ваш код (ваш не трогаем) */
+  protected readonly guideCode = signal<string | null>(null);
+  protected readonly source = computed(
+    () => this.guideCode() ?? this.codes()[this.task().id] ?? this.task().starter,
+  );
   protected readonly asm = computed<AsmResult>(() =>
     assemble(fullSource(this.source(), this.task())),
   );
@@ -167,20 +177,64 @@ export class RvLab {
     }
   });
 
-  /** Ссылка вида ?task=<id> (из боковой панели) открывает нужное задание */
+  /** Адрес /<глава>/<задание>: какое задание открыто, определяет адрес */
   private readonly router = inject(Router);
-  private readonly queryParams = toSignal(this.route.queryParamMap, { requireSync: true });
+  private readonly params = toSignal(this.route.paramMap, { requireSync: true });
   private readonly taskParamEffect = effect(() => {
-    const id = this.queryParams().get('task');
-    if (!id) return;
+    const id = this.params().get('exercise');
+    const i = this.tasks.findIndex((t) => t.id === id);
+    if (i < 0 || i === untracked(this.index)) return;
     untracked(() => {
-      const i = this.tasks.findIndex((t) => t.id === id);
-      if (i >= 0) this.selectTask(i);
-      this.router.navigate([], {
-        queryParams: { task: null },
-        queryParamsHandling: 'merge',
-        replaceUrl: true,
+      this.index.set(i);
+      this.hintShown.set(false);
+      this.selectedLine.set(null);
+      this.save();
+    });
+  });
+
+  /* ---------- режим авто ---------- */
+  private readonly session = inject(GuideSession);
+  private readonly slug = this.real ? 'real' : 'riscv';
+  protected readonly guide = computed(() => codeGuideFor(this.slug, this.task().id));
+  private readonly guideHost: CodeGuideHost = {
+    guide: () => this.guide(),
+    setCode: (code) => this.guideCode.set(code),
+    resetMachine: () => this.resets.update((n) => n + 1),
+    exec: (n) => {
+      const m = this.machine();
+      if (!m) return ['Программа пока не собирается: проверьте текст.'];
+      const listing = this.asm().lines;
+      const hexw = (v: number) => (v >>> 0).toString(16);
+      const lines = traceRun(m, n, {
+        insnAt: (pc) => {
+          const l = listing.find((x) => x.addr === pc);
+          if (!l) return '?';
+          // псевдокоманда: показываем настоящую команду и то, из чего она получилась
+          return l.pseudo ? `${disassemble(l.word)}   (${l.text})` : l.text;
+        },
+        regName: (i) => ABI_NAMES[i],
+        fmtReg: (v) => `${v | 0} (0x${hexw(v)})`,
+        fmtAddr: (a) => `0x${hexw(a)}`,
+        fmtPc: (pc) => `0x${hexw(pc)}`,
+        fmtByte: (v) => `${v} (0x${hexw(v)})`,
+        insnSize: 4,
       });
+      this.version.update((v) => v + 1);
+      return lines;
+    },
+    next: () => nextInCourse(this.slug, this.task().id),
+    go: (to) => void this.router.navigate(['/', to.slug, to.id]),
+  };
+  protected readonly gc = new CodeGuideController(this.guideHost, this.session);
+
+  /** Режим авто «залипает»: пока он включён, каждое задание открывается в нём */
+  private readonly guideSyncEffect = effect(() => {
+    this.task();
+    const want = this.session.auto();
+    const available = this.guide() !== null;
+    untracked(() => {
+      if (want && available) this.gc.begin();
+      else this.gc.stop();
     });
   });
 
@@ -237,12 +291,10 @@ export class RvLab {
     el.dispatchEvent(new Event('input'));
   }
 
+  /** Переход к заданию — это переход по адресу; состояние сменит taskParamEffect */
   protected selectTask(i: number): void {
     if (i === this.index()) return;
-    this.index.set(i);
-    this.hintShown.set(false);
-    this.selectedLine.set(null);
-    this.save();
+    void this.router.navigate(['/', this.real ? 'real' : 'riscv', this.tasks[i].id]);
   }
 
   protected step(): void {

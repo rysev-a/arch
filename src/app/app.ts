@@ -1,11 +1,12 @@
 import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterOutlet } from '@angular/router';
+import { Breadcrumbs } from './nav/breadcrumbs';
 import { runDemoIfRequested } from './demo';
 import { SideNav } from './nav/side-nav';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, SideNav],
+  imports: [RouterOutlet, RouterLink, SideNav, Breadcrumbs],
   styleUrl: './app.css',
   templateUrl: './app.html',
 })

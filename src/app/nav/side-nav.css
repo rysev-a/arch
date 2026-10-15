@@ -118,3 +118,22 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.home-link {
+  display: block;
+  margin-bottom: 0.375rem;
+  padding: 0.4375rem 0.5rem;
+  border-radius: calc(var(--radius) - 2px);
+  color: hsl(var(--muted-foreground));
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.home-link:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+}
+.home-link.active {
+  background: hsl(var(--secondary));
+  color: hsl(var(--foreground));
+}

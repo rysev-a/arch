@@ -1,0 +1,39 @@
+<div class="chapters">
+  @for (part of parts(); track part.id) {
+    <section class="part">
+      <h2 class="part-title">{{ part.title }}</h2>
+      <p class="part-text">{{ part.text }}</p>
+      <div class="chapter-grid">
+        @for (c of part.chapters; track c.chapter.slug; let i = $index) {
+          <article class="card chapter-card">
+            <div class="card-header">
+              <h3 class="card-title">
+                <a [routerLink]="['/', c.chapter.slug]" class="chapter-link">{{
+                  c.chapter.title
+                }}</a>
+              </h3>
+              <p class="card-description">{{ c.chapter.description }}</p>
+            </div>
+            <div class="card-content">
+              <div
+                class="bar"
+                role="progressbar"
+                [attr.aria-valuenow]="c.percent"
+                aria-valuemin="0"
+                aria-valuemax="100"
+              >
+                <span class="bar-fill" [style.width.%]="c.percent"></span>
+              </div>
+              <div class="card-foot">
+                <span class="muted">{{ c.done }} из {{ c.total }} решено</span>
+                <a class="btn btn-outline btn-sm" [routerLink]="['/', c.chapter.slug, c.resumeId]">
+                  {{ c.started ? 'Продолжить' : 'Начать' }}
+                </a>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    </section>
+  }
+</div>
