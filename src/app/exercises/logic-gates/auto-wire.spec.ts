@@ -82,6 +82,29 @@ describe('автоподстановка связей: что предлагае
     expect(got).toEqual([]);
   });
 
+  it('оба входа рядом с одним элементом — пунктир только к ближнему входу', () => {
+    // выход левого: (264, 174); входы элемента И: (x-8, y+14) и (x-8, y+34)
+    const src: GateInstance = { id: 's', type: 'NOT', x: 200, y: 150 };
+    const and: GateInstance = { id: 'a', type: 'AND', x: 290, y: 160 }; // in0 (282,174) ближе, in1 (282,194)
+    const got = ask(and, [src]);
+    const toSrc = got.filter((w) => w.from.node === 's');
+    expect(toSrc.map((w) => w.to.pin)).toEqual(['in0']);
+    // если ближе нижний вход — выбирается он
+    const lower = ask({ ...and, y: 140 }, [src]).filter((w) => w.from.node === 's');
+    expect(lower.map((w) => w.to.pin)).toEqual(['in1']);
+  });
+
+  it('второй вход, которому не досталось этого элемента, цепляется к другому соседу', () => {
+    const src: GateInstance = { id: 's', type: 'NOT', x: 200, y: 150 };
+    const and: GateInstance = { id: 'a', type: 'AND', x: 290, y: 160 };
+    // тумблер A у (100, 80) далеко; добавим соседа-источника для in1
+    const other: GateInstance = { id: 'o', type: 'NOT', x: 200, y: 190 }; // выход (264, 214)
+    const got = ask(and, [src, other]);
+    const pairs = got.map((w) => `${w.from.node}>${w.to.node}.${w.to.pin}`);
+    expect(pairs).toContain('s>a.in0');
+    expect(pairs).toContain('o>a.in1');
+  });
+
   it('далёкие контакты не трогаем', () => {
     expect(ask({ id: 'g1', type: 'AND', x: 400, y: 300 })).toEqual([]);
   });

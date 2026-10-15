@@ -61,6 +61,22 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
     return true;
   };
 
+  // все возможные связи элемента: свободные входы ← источники, выход → свободные входы
+  interface Candidate {
+    from: PinRef;
+    to: PinRef;
+    /** с каким элементом связь и в какую сторону — на пару «элемент + сторона» достаточно одного провода */
+    group: string;
+    d: number;
+    held: boolean;
+  }
+  const cands: Candidate[] = [];
+  const consider = (from: PinRef, to: PinRef, other: string, dir: 'in' | 'out'): void => {
+    const held = kept(from, to);
+    const d = dist(posOf(from), posOf(to));
+    if (held || d <= radius) cands.push({ from, to, group: `${dir}:${other}`, d, held });
+  };
+
   // источники сигнала: тумблеры входов и выходы других элементов
   const sources: PinRef[] = [
     ...Object.keys(inputYMap).map((node) => ({ node, pin: 'out' as const })),
@@ -69,12 +85,7 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
   for (const pin of gatePinsOf(gate.type)) {
     const to: PinRef = { node: gate.id, pin };
     if (driven(to)) continue;
-    const at = posOf(to);
-    const near = sources
-      .map((from) => ({ from, d: dist(posOf(from), at), held: kept(from, to) }))
-      .filter((c) => c.held || c.d <= radius)
-      .sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
-    for (const c of near) if (accept(c.from, to)) break;
+    for (const from of sources) consider(from, to, from.node, 'in');
   }
 
   // приёмники сигнала: свободные входы других элементов и выходы схемы
@@ -83,13 +94,21 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
     ...Object.keys(outputYMap).map((node) => ({ node, pin: 'in0' as const })),
   ];
   const out: PinRef = { node: gate.id, pin: 'out' };
-  const outAt = posOf(out);
-  const near = sinks
-    .filter((to) => !driven(to))
-    .map((to) => ({ to, d: dist(posOf(to), outAt), held: kept(out, to) }))
-    .filter((c) => c.held || c.d <= radius)
-    .sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
-  for (const c of near) if (accept(out, c.to)) break;
+  for (const to of sinks) if (!driven(to)) consider(out, to, to.node, 'out');
+
+  // сначала уже показанные связи, потом самые короткие; если два контакта тянутся к одному и тому
+  // же элементу, пунктир остаётся у ближнего, а второй контакт ищет себе другого соседа
+  cands.sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
+  const usedGroups = new Set<string>();
+  const usedPins = new Set<string>();
+  for (const c of cands) {
+    // у выхода — одна связь, у каждого входа — тоже одна
+    const pinKey = c.from.node === gate.id ? 'out' : c.to.pin;
+    if (usedPins.has(pinKey) || usedGroups.has(c.group)) continue;
+    if (!accept(c.from, c.to)) continue;
+    usedPins.add(pinKey);
+    usedGroups.add(c.group);
+  }
 
   return result;
 }
