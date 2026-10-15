@@ -183,13 +183,6 @@
           />
         }
         <div class="card-content board-wrap">
-          @if (!isBlocksMode() && paletteGates().length > 0) {
-            <!-- панель элементов прямо на доске: квадратики-иконки -->
-            <app-gate-palette
-              [gates]="paletteItems()"
-              (pick)="startPlace($event.event, $event.type)"
-            />
-          }
           @if (!isBlocksMode()) {
             <div class="board-tools">
               <app-board-tools
@@ -293,265 +286,26 @@
               />
             }
           } @else {
-            <app-view-controls
-              [zoom]="zoom()"
-              [changed]="viewChanged()"
-              (zoomIn)="zoomBy(ZOOM_STEP)"
-              (zoomOut)="zoomBy(1 / ZOOM_STEP)"
-              (resetZoom)="zoom.set(1)"
-              (reset)="resetView()"
+            <app-gate-board
+              [class.fill]="fullscreen()"
+              [(gates)]="gates"
+              [(wires)]="wires"
+              [circuit]="circuit()"
+              [inputs]="activeInputs()"
+              [labels]="labels()"
+              [outputs]="activeOutputs()"
+              [inputState]="inputState()"
+              [clockId]="clockId()"
+              [stepsMode]="isStepsMode()"
+              [valueFn]="valueAtFn"
+              [palette]="paletteItems()"
+              [guideFocus]="guideFocus()"
+              [fullscreen]="fullscreen()"
+              (toggleInput)="toggleInput($event)"
+              (edited)="afterEdit()"
+              (message)="notify($event)"
+              (lockedPick)="onLockedPick($event)"
             />
-            <svg
-              #board
-              class="board-svg"
-              [style.height.px]="fullscreen() ? null : boardHeight()"
-              [class.panning]="panning()"
-              [class.zoom-ready]="zoomReady()"
-              [attr.viewBox]="viewBox()"
-              (pointerdown)="boardDown($event)"
-              role="img"
-              aria-label="Интерактивная доска с логическими элементами"
-            >
-              <defs>
-                <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
-                  <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
-                </pattern>
-              </defs>
-              <rect
-                class="board-bg"
-                [attr.x]="pan().x"
-                [attr.y]="pan().y"
-                [attr.width]="viewW()"
-                [attr.height]="viewH()"
-                fill="url(#dots)"
-              />
-
-              <!-- ================= Провода ================= -->
-              @for (w of wires(); track w.id) {
-                <g
-                  class="wire"
-                  [class.guide-focus]="guideFocus().has(w.id)"
-                  (pointerdown)="removeWire(w.id)"
-                >
-                  <title>Клик — удалить провод</title>
-                  <path class="wire-hit" [attr.d]="wireD(w)" />
-                  <path class="wire-line" [class]="pinCls(wireValue(w))" [attr.d]="wireD(w)" />
-                </g>
-              }
-
-              <!-- ================= Входы ================= -->
-              @for (id of activeInputs(); track id) {
-                <g class="input-node" [class.is-clock]="clockId() === id">
-                  <g class="node-click" (pointerdown)="toggleInput(id)">
-                    <title>
-                      Клик — переключить {{ inputLabel(id) }} ({{ inputState()[id] }} →
-                      {{ 1 - inputState()[id] }})
-                    </title>
-                    <rect
-                      class="node-box"
-                      x="10"
-                      [attr.y]="inputY(id) - 22"
-                      width="86"
-                      height="44"
-                      rx="10"
-                    />
-                    <text class="node-label" x="30" [attr.y]="inputY(id) + 5">
-                      {{ inputLabel(id) }}
-                    </text>
-                    <rect
-                      class="node-chip"
-                      [class]="pinCls(inputState()[id])"
-                      x="56"
-                      [attr.y]="inputY(id) - 12"
-                      width="26"
-                      height="24"
-                      rx="7"
-                    />
-                    <text class="node-chip-text" x="69" [attr.y]="inputY(id) + 5">
-                      {{ inputState()[id] }}
-                    </text>
-                  </g>
-                  <g
-                    class="pin"
-                    (pointerenter)="pinEnter(id, 'out')"
-                    (pointerleave)="pinLeave(id, 'out')"
-                  >
-                    <circle
-                      class="pin-hit"
-                      [attr.cx]="INPUT_X"
-                      [attr.cy]="inputY(id)"
-                      r="13"
-                      (pointerdown)="pinDown($event, id, 'out')"
-                    />
-                    <circle
-                      class="pin-dot"
-                      [attr.cx]="INPUT_X"
-                      [attr.cy]="inputY(id)"
-                      r="5.5"
-                      [class]="pinCls(valueAt(id))"
-                    />
-                  </g>
-                </g>
-              }
-
-              <!-- ================= Выходы ================= -->
-              @for (o of activeOutputs(); track o) {
-                <g class="out-node">
-                  <rect
-                    class="node-box out-box"
-                    x="788"
-                    [attr.y]="outputY(o) - 22"
-                    width="86"
-                    height="44"
-                    rx="10"
-                  />
-                  <text class="node-label" x="812" [attr.y]="outputY(o) + 5">{{ o }}</text>
-                  <rect
-                    class="node-chip"
-                    [class]="pinCls(valueAt(o))"
-                    x="834"
-                    [attr.y]="outputY(o) - 12"
-                    width="26"
-                    height="24"
-                    rx="7"
-                  />
-                  <text class="node-chip-text" x="847" [attr.y]="outputY(o) + 5">
-                    {{ valText(valueAt(o)) }}
-                  </text>
-                  <g
-                    class="pin"
-                    (pointerenter)="pinEnter(o, 'in0')"
-                    (pointerleave)="pinLeave(o, 'in0')"
-                  >
-                    <circle
-                      class="pin-hit"
-                      [attr.cx]="OUT_X"
-                      [attr.cy]="outputY(o)"
-                      r="13"
-                      (pointerdown)="pinDown($event, o, 'in0')"
-                    />
-                    <circle
-                      class="pin-dot"
-                      [attr.cx]="OUT_X"
-                      [attr.cy]="outputY(o)"
-                      r="5.5"
-                      [class]="pinCls(pinValue(o, 'in0'))"
-                    />
-                  </g>
-                </g>
-              }
-
-              <!-- ================= Гейты ================= -->
-              @for (g of gates(); track g.id) {
-                <g
-                  class="gate"
-                  [class.guide-focus]="guideFocus().has(g.id)"
-                  [class.dragging]="movingId() === g.id"
-                  [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'"
-                  (pointerdown)="gateDown($event, g)"
-                >
-                  <path class="gate-body" [attr.d]="bodyPath(g.type)" />
-                  @if (extraArc(g.type) !== null) {
-                    <path class="gate-extra" [attr.d]="extraArc(g.type)" />
-                  }
-                  @if (bubbleCx(g.type) !== null) {
-                    <circle class="gate-bubble" [attr.cx]="bubbleCx(g.type)" cy="24" r="5" />
-                  }
-                  <text
-                    class="gate-label"
-                    [class.small]="g.type === 'NOT'"
-                    [attr.x]="g.type === 'NOT' ? 13 : GATE_W / 2"
-                    y="29"
-                  >
-                    {{ g.type }}
-                  </text>
-
-                  <!-- кнопка удаления -->
-                  <g
-                    class="gate-del"
-                    (pointerdown)="$event.stopPropagation()"
-                    (click)="removeGate(g.id)"
-                  >
-                    <title>Удалить элемент</title>
-                    <circle cx="76" cy="0" r="8" />
-                    <path d="M73 -3 L79 3 M79 -3 L73 3" />
-                  </g>
-
-                  <!-- входные пины -->
-                  @for (p of gatePins(g.type); track p) {
-                    <g
-                      class="pin"
-                      [attr.transform]="'translate(-8 ' + pinY(g.type, p) + ')'"
-                      (pointerenter)="pinEnter(g.id, p)"
-                      (pointerleave)="pinLeave(g.id, p)"
-                    >
-                      <circle class="pin-hit" r="13" (pointerdown)="pinDown($event, g.id, p)" />
-                      <circle class="pin-dot" r="5.5" [class]="pinCls(pinValue(g.id, p))" />
-                    </g>
-                  }
-
-                  <!-- выходной пин -->
-                  <g
-                    class="pin"
-                    (pointerenter)="pinEnter(g.id, 'out')"
-                    (pointerleave)="pinLeave(g.id, 'out')"
-                  >
-                    <circle
-                      class="pin-hit"
-                      [attr.cx]="outPinX(g.type)"
-                      cy="24"
-                      r="13"
-                      (pointerdown)="pinDown($event, g.id, 'out')"
-                    />
-                    <circle
-                      class="pin-dot"
-                      [attr.cx]="outPinX(g.type)"
-                      cy="24"
-                      r="5.5"
-                      [class]="pinCls(pinValue(g.id, 'out'))"
-                    />
-                  </g>
-
-                  <!-- «щуп»: текущее значение на выходе -->
-                  <g
-                    class="probe"
-                    [attr.transform]="'translate(' + (outPinX(g.type) + 20) + ' 24)'"
-                  >
-                    <circle r="9" />
-                    <text y="3.5" text-anchor="middle">{{ valText(pinValue(g.id, 'out')) }}</text>
-                  </g>
-                </g>
-              }
-
-              <!-- ============ Автоподстановка: возможные провода ============ -->
-              @for (d of autoWirePaths(); track $index) {
-                <path class="wire-auto" [attr.d]="d" />
-              }
-
-              <!-- ================= Предпросмотр провода ================= -->
-              @if (previewD(); as d) {
-                <path class="wire-preview" [class.ok]="dropOk()" [attr.d]="d" />
-              }
-            </svg>
-          }
-
-          @if (!isBlocksMode() && !fullscreen()) {
-            <!-- за эту ручку тянут, чтобы изменить высоту доски (двойной щелчок — по умолчанию) -->
-            <button
-              type="button"
-              class="resize-grip"
-              role="separator"
-              aria-orientation="horizontal"
-              aria-label="Высота доски: потяните вверх или вниз, либо стрелками"
-              title="Потяните, чтобы изменить высоту доски (двойной щелчок — по умолчанию)"
-              (pointerdown)="resizeDown($event)"
-              (dblclick)="boardHeight.set(null)"
-              (keydown)="resizeKey($event)"
-            >
-              <svg viewBox="0 0 28 8" aria-hidden="true">
-                <path d="M2 2h24M2 6h24" />
-              </svg>
-            </button>
           }
 
           @if (flash(); as message) {
@@ -593,23 +347,6 @@
       <app-wave-diagram [wave]="wave()" (clear)="clearHistory()" />
     }
   </section>
-
-  <!-- призрак перетаскиваемого элемента -->
-  @if (placing(); as t) {
-    <div
-      class="ghost"
-      [style.left.px]="cursorClient()?.x"
-      [style.top.px]="cursorClient()?.y"
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 84 48" width="56" height="32">
-        <path class="gate-body" [attr.d]="bodyPath(t)" />
-        @if (bubbleCx(t) !== null) {
-          <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
-        }
-      </svg>
-    </div>
-  }
 
   @if (guideOn() && guideStep(); as step) {
     <app-guide-player

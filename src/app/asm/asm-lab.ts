@@ -12,7 +12,7 @@ import { GuidePlayer } from '../guide/guide-player';
 import { GuideSession } from '../guide/guide-session';
 import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guide';
 import { codeGuideFor } from '../guide/code-registry';
-import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
+import { nextInCourse } from '../pages/chapters/chapters';
 import { ConfirmService } from '../ui/confirm.service';
 import { DashProgress } from '../ui/dash-progress';
 import { HintPopover } from '../ui/hint-popover';

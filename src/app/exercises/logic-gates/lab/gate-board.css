@@ -1,0 +1,354 @@
+/* доска занимает всё место карточки; полоса снизу — под ручку высоты */
+:host {
+  position: relative;
+  display: block;
+  padding-bottom: 1.25rem;
+}
+:host(.fill) {
+  padding-bottom: 0;
+}
+:host(.fill) .board-svg {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+}
+app-gate-palette.board-palette {
+  position: absolute;
+  top: 0.5rem;
+  left: 50%;
+  z-index: 3;
+  /* по бокам — масштаб и иконки; на узкой доске панель переносится в несколько рядов */
+  max-width: max(5.5rem, calc(100% - 26rem));
+  transform: translateX(-50%);
+}
+/* кнопки масштаба — левее иконок «очистить» и «на весь экран» (они в карточке доски) */
+app-view-controls {
+  top: 0.5rem;
+  right: 5.25rem;
+}
+
+.input-node.is-clock .node-box {
+  stroke: hsl(var(--primary) / 0.55);
+  stroke-width: 2;
+}
+
+.board-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--muted) / 0.3);
+}
+
+.grid-dot {
+  fill: hsl(var(--muted-foreground) / 0.22);
+}
+
+/* ===================== Входы / выход ===================== */
+.node-box {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+  stroke-width: 1.5;
+  transition: fill 0.15s ease;
+}
+.node-click {
+  cursor: pointer;
+}
+.node-click:hover .node-box {
+  fill: hsl(var(--accent));
+  stroke: hsl(var(--primary) / 0.5);
+}
+
+.out-box {
+  stroke: hsl(var(--primary) / 0.45);
+  stroke-width: 2;
+}
+
+.node-label {
+  fill: hsl(var(--foreground));
+  font-size: 15px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.node-chip {
+  fill: hsl(var(--muted));
+  stroke: hsl(var(--border));
+  transition:
+    fill 0.15s ease,
+    stroke 0.15s ease;
+}
+.node-chip.v1 {
+  fill: hsl(var(--success));
+  stroke: hsl(var(--success) / 0.6);
+}
+.node-chip-text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 13px;
+  font-weight: 700;
+  text-anchor: middle;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+  transition: fill 0.15s ease;
+}
+.node-chip.v1 + .node-chip-text {
+  fill: hsl(var(--success-foreground));
+}
+
+/* ===================== Гейты ===================== */
+.gate {
+  cursor: grab;
+}
+.gate.dragging {
+  cursor: grabbing;
+}
+
+.gate-body {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--foreground) / 0.75);
+  stroke-width: 1.8;
+  transition: fill 0.15s ease;
+}
+.gate:hover .gate-body {
+  fill: hsl(var(--accent));
+}
+.gate.dragging .gate-body {
+  stroke: hsl(var(--primary));
+  stroke-width: 2.2;
+}
+
+.gate-bubble {
+  fill: none;
+  stroke: hsl(var(--foreground) / 0.75);
+  stroke-width: 1.8;
+}
+
+.gate-label {
+  fill: hsl(var(--foreground));
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  pointer-events: none;
+}
+.gate-label.small {
+  font-size: 9px;
+  letter-spacing: 0;
+}
+
+.gate-del {
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+}
+.gate:hover .gate-del {
+  opacity: 1;
+}
+.gate-del circle {
+  fill: hsl(var(--destructive));
+  stroke: hsl(var(--card));
+  stroke-width: 1.5;
+}
+.gate-del path {
+  stroke: hsl(var(--destructive-foreground));
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: none;
+}
+
+.probe circle {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+  stroke-width: 1.2;
+}
+.probe text {
+  fill: hsl(var(--muted-foreground));
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ===================== Пины ===================== */
+.pin {
+  cursor: crosshair;
+}
+.pin-hit {
+  fill: transparent;
+  stroke: none;
+  pointer-events: all;
+}
+.pin-dot {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--warning));
+  stroke-width: 2;
+  transition:
+    fill 0.15s ease,
+    stroke 0.15s ease;
+  pointer-events: none;
+}
+.pin-dot.v1 {
+  fill: hsl(var(--success));
+  stroke: hsl(var(--success) / 0.5);
+}
+.pin-dot.v0 {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--muted-foreground) / 0.6);
+}
+
+/* ===================== Провода ===================== */
+.wire {
+  cursor: pointer;
+}
+.wire-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 14;
+  pointer-events: stroke;
+}
+.wire-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  transition: stroke 0.15s ease;
+}
+.wire-line.v1 {
+  stroke: hsl(var(--success));
+  stroke-dasharray: 7 5;
+  animation: wire-flow 0.5s linear infinite;
+}
+.wire-line.v0 {
+  stroke: hsl(var(--muted-foreground) / 0.55);
+}
+.wire-line.vx {
+  stroke: hsl(var(--warning));
+  stroke-dasharray: 3 5;
+}
+.wire:hover .wire-line {
+  stroke: hsl(var(--destructive));
+  animation: none;
+}
+
+@keyframes wire-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-line.v1 {
+    animation: none;
+  }
+}
+
+.wire-preview {
+  fill: none;
+  stroke: hsl(var(--muted-foreground) / 0.7);
+  stroke-width: 2;
+  stroke-dasharray: 6 6;
+  stroke-linecap: round;
+  pointer-events: none;
+}
+.wire-auto {
+  fill: none;
+  stroke: hsl(217 91% 60% / 0.5);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 6;
+  stroke-linecap: round;
+  pointer-events: none;
+  /* штрихи бегут по проводу: от выхода ко входу */
+  animation: wire-auto-flow 0.7s linear infinite;
+}
+@keyframes wire-auto-flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .wire-auto {
+    animation: none;
+  }
+}
+.wire-preview.ok {
+  stroke: hsl(var(--success));
+}
+
+/* ===================== «Призрак» из палитры ===================== */
+.ghost {
+  position: fixed;
+  z-index: 200; /* выше доски на весь экран (z-index 100), иначе при перетаскивании элемента его не видно */
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  opacity: 0.9;
+  filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.25));
+}
+
+@keyframes guide-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 hsl(var(--success) / 0));
+  }
+  50% {
+    filter: drop-shadow(0 0 7px hsl(var(--success)));
+  }
+}
+.gate.guide-focus .gate-body,
+.wire.guide-focus .wire-line {
+  animation: guide-pulse 1.1s ease-in-out 3;
+}
+.wire.guide-focus .wire-line {
+  stroke-width: 4;
+}
+
+/* доска без границ: пустое место можно «взять рукой» */
+.board-bg {
+  cursor: grab;
+}
+.board-svg.panning,
+.board-svg.panning .board-bg {
+  cursor: grabbing;
+}
+
+/* на доске можно крутить колесом мыши — она «готова» к масштабу */
+.board-svg.zoom-ready {
+  outline: 2px solid hsl(var(--ring) / 0.35);
+  outline-offset: -2px;
+}
+
+/* ручка под доской: за неё тянут, чтобы менять высоту */
+.resize-grip {
+  position: absolute;
+  left: 50%;
+  bottom: 2px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 1rem;
+  padding: 0;
+  transform: translateX(-50%);
+  border: none;
+  border-radius: 9999px;
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: ns-resize;
+  touch-action: none;
+}
+.resize-grip svg {
+  width: 1.75rem;
+  height: 0.5rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+}
+.resize-grip:hover,
+.resize-grip:focus-visible {
+  background: hsl(var(--accent));
+  color: hsl(var(--foreground));
+  outline: none;
+}
