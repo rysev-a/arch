@@ -3,10 +3,10 @@ import { Injectable, effect, signal } from '@angular/core';
 const KEY = 'processor-settings-v1';
 
 /**
- * Радиус автоподстановки в настройках — «базовый»: на доске действует радиус в 2,5 раза больше.
+ * Радиус автоподстановки в настройках — «базовый»: на доске действует радиус в 4 раза больше.
  * Границы и значение по умолчанию — в базовых единицах.
  */
-export const AUTO_WIRE_RADIUS_FACTOR = 2.5;
+export const AUTO_WIRE_RADIUS_FACTOR = 4;
 export const AUTO_WIRE_RADIUS_MIN = 16;
 export const AUTO_WIRE_RADIUS_MAX = 108;
 export const AUTO_WIRE_RADIUS_DEFAULT = 56;
