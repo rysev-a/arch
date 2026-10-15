@@ -81,8 +81,11 @@
   position: sticky;
   top: 4.25rem;
   align-self: start;
+  /* высота с учётом внутренних отступов: иначе низ меню уезжает за экран и до него не доскроллить */
+  box-sizing: border-box;
   max-height: calc(100vh - 4.25rem);
   overflow-y: auto;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
   padding: 1.25rem 0 1.5rem;
