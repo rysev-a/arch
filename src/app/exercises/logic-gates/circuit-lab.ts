@@ -88,6 +88,7 @@ import {
   ZOOM,
   clampWorld,
   dragPan,
+  listenActivity,
   listenMiddleButton,
   listenZoomWheel,
   startPan,
@@ -277,6 +278,8 @@ export class CircuitLab {
   /** сдвиг доски: она без границ, колесом мыши (или за пустое место) её можно двигать */
   protected readonly pan = signal<Point>({ x: 0, y: 0 });
   protected readonly panning = signal(false);
+  /** на доску нажали и курсор с неё не уходил: колесо мыши меняет масштаб */
+  protected readonly zoomReady = signal(false);
   /** масштаб доски: 1 — как задумано, меньше — «отъехать», больше — «приблизить» */
   protected readonly zoom = signal(1);
   protected readonly viewChanged = computed(
@@ -321,14 +324,19 @@ export class CircuitLab {
     const el = this.boardEl()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(listenActivity(el, (on) => this.zoomReady.set(on)));
     onCleanup(
-      listenZoomWheel(el, (event) => {
-        const m = this.metrics();
-        this.applyZoom(wheelFactor(event), {
-          x: event.clientX - m.rect.left - m.offX,
-          y: event.clientY - m.rect.top - m.offY,
-        });
-      }),
+      listenZoomWheel(
+        el,
+        (event) => {
+          const m = this.metrics();
+          this.applyZoom(wheelFactor(event), {
+            x: event.clientX - m.rect.left - m.offX,
+            y: event.clientY - m.rect.top - m.offY,
+          });
+        },
+        () => this.zoomReady(),
+      ),
     );
   });
 

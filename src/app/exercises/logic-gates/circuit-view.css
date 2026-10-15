@@ -1,5 +1,6 @@
 :host {
   display: block;
+  position: relative;
 }
 
 .cv {
@@ -138,4 +139,19 @@
 }
 :host(.fill) .cv {
   height: 100%;
+}
+
+.cv-bg {
+  cursor: grab;
+}
+.cv.panning,
+.cv.panning .cv-bg {
+  cursor: grabbing;
+}
+.cv.zoom-ready {
+  outline: 2px solid hsl(var(--ring) / 0.35);
+  outline-offset: -2px;
+}
+.gate {
+  cursor: grab;
 }

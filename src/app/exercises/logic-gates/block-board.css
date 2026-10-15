@@ -252,3 +252,8 @@
 .bb.panning .bb-bg {
   cursor: grabbing;
 }
+
+.bb.zoom-ready {
+  outline: 2px solid hsl(var(--ring) / 0.35);
+  outline-offset: -2px;
+}

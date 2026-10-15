@@ -37,6 +37,7 @@
       [wires]="g.wires"
       [iface]="current().iface"
       [scope]="current().scope"
+      [spread]="spreadForGates(g)"
     />
   } @else if (isNative(current().solution)) {
     <p class="native">

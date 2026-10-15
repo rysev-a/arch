@@ -100,16 +100,37 @@ export function zoomAround(
 export const viewBoxOf = (pan: Point, zoom: number, w: number, h: number): string =>
   [pan.x, pan.y, w / zoom, h / zoom].map((n) => Math.round(n * 100) / 100).join(' ');
 
-/** Ctrl (⌘) + колесо или щипок на тачпаде — масштаб; обычное колесо по-прежнему прокручивает страницу */
-export function listenZoomWheel(el: Element, onZoom: (event: WheelEvent) => void): () => void {
+/**
+ * Колесо над доской. Ctrl (⌘) + колесо или щипок на тачпаде масштабируют всегда. Обычное колесо
+ * масштабирует, только если доска «активна» (на неё нажали, курсор от неё не уходил) или она
+ * развёрнута на весь экран; иначе оно прокручивает страницу, как везде.
+ */
+export function listenZoomWheel(
+  el: Element,
+  onZoom: (event: WheelEvent) => void,
+  isActive: () => boolean = () => false,
+): () => void {
   const handler = (e: Event) => {
     const event = e as WheelEvent;
-    if (!event.ctrlKey && !event.metaKey) return;
+    const forced = event.ctrlKey || event.metaKey;
+    if (!forced && !isActive() && !el.closest('.fullscreen')) return;
     event.preventDefault();
     onZoom(event);
   };
   el.addEventListener('wheel', handler, { passive: false });
   return () => el.removeEventListener('wheel', handler);
+}
+
+/** Доска «активна» после нажатия на неё и перестаёт быть такой, когда курсор ушёл */
+export function listenActivity(el: Element, set: (active: boolean) => void): () => void {
+  const on = () => set(true);
+  const off = () => set(false);
+  el.addEventListener('pointerdown', on);
+  el.addEventListener('pointerleave', off);
+  return () => {
+    el.removeEventListener('pointerdown', on);
+    el.removeEventListener('pointerleave', off);
+  };
 }
 
 /** Коэффициент масштаба за один «тик» колеса: плавно и в обе стороны одинаково */

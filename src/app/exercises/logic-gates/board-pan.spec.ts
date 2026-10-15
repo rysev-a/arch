@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { BlockBoard } from './block-board';
+import { CircuitView } from './circuit-view';
 import { BlockDef, BlockLibrary } from './blocks';
 import { CircuitLab } from './circuit-lab';
 import { WORLD, ZOOM, clampWorld, dragPan, startPan, viewBoxOf, zoomAround } from './board-pan';
@@ -249,5 +250,145 @@ describe('просмотр схемы: блоки раздвинуты и их �
     back.click();
     f.detectChanges();
     expect(pos('a')).toBe('translate(150 20)');
+  });
+});
+
+describe('колесо мыши над доской: когда оно масштабирует', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    TestBed.configureTestingModule({ providers: [provideRouter([])] });
+  });
+
+  const wheel = (init: WheelEventInit = {}): WheelEvent =>
+    new WheelEvent('wheel', {
+      deltaY: -200,
+      clientX: 440,
+      clientY: 220,
+      bubbles: true,
+      cancelable: true,
+      ...init,
+    });
+
+  function lab() {
+    const f = TestBed.createComponent(CircuitLab);
+    f.componentRef.setInput(
+      'section',
+      SECTIONS.find((s) => s.slug === 'simple-circuits'),
+    );
+    f.componentRef.setInput('startExercise', 'and');
+    f.detectChanges();
+    const svg = (f.nativeElement as HTMLElement).querySelector('.board-svg') as SVGSVGElement;
+    svg.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 880, height: 440, right: 880, bottom: 440 }) as DOMRect;
+    return { f, svg };
+  }
+
+  it('пока на доску не нажали, колесо прокручивает страницу; после нажатия — масштабирует', () => {
+    const { f, svg } = lab();
+    const idle = wheel();
+    svg.dispatchEvent(idle);
+    expect(idle.defaultPrevented).toBe(false);
+    expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+
+    svg.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 2 }));
+    f.detectChanges();
+    expect(svg.classList.contains('zoom-ready')).toBe(true);
+    const active = wheel();
+    svg.dispatchEvent(active);
+    f.detectChanges();
+    expect(active.defaultPrevented).toBe(true);
+    expect(Number(svg.getAttribute('viewBox')!.split(' ')[2])).toBeLessThan(880);
+
+    // курсор ушёл с доски — снова обычная прокрутка
+    svg.dispatchEvent(new MouseEvent('pointerleave'));
+    f.detectChanges();
+    expect(svg.classList.contains('zoom-ready')).toBe(false);
+    const after = wheel();
+    svg.dispatchEvent(after);
+    expect(after.defaultPrevented).toBe(false);
+  });
+});
+
+describe('просмотр схемы из вентилей: раздвинуто, масштабируется, вентили переставляются', () => {
+  const gates = [
+    { id: 'a', type: 'AND' as const, x: 150, y: 20 },
+    { id: 'b', type: 'NOT' as const, x: 500, y: 82 },
+  ];
+  const wires = [
+    { id: 'w1', from: { node: 'A', pin: 'out' as const }, to: { node: 'a', pin: 'in0' as const } },
+    { id: 'w2', from: { node: 'a', pin: 'out' as const }, to: { node: 'b', pin: 'in0' as const } },
+    { id: 'w3', from: { node: 'b', pin: 'out' as const }, to: { node: 'Y', pin: 'in0' as const } },
+  ];
+
+  function view(spread: number) {
+    const f = TestBed.createComponent(CircuitView);
+    f.componentRef.setInput('gates', gates);
+    f.componentRef.setInput('wires', wires);
+    f.componentRef.setInput('iface', { inputs: ['A'], outputs: ['Y'], ports: [] });
+    f.componentRef.setInput('spread', spread);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    const svg = el.querySelector('svg.cv') as SVGSVGElement;
+    svg.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 880, height: 440, right: 880, bottom: 440 }) as DOMRect;
+    const at = (id: string) =>
+      el.querySelector(`.gate[data-id="${id}"]`)!.getAttribute('transform');
+    return { f, el, svg, at };
+  }
+
+  it('без раздвигания всё как есть', () => {
+    const { at, svg } = view(1);
+    expect(at('a')).toBe('translate(150 20)');
+    expect(at('b')).toBe('translate(500 82)');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+  });
+
+  it('раздвигание растягивает расстояния, доска шире, колонка выходов уезжает вправо', () => {
+    const { at, svg, el } = view(2);
+    expect(at('a')).toBe('translate(150 20)');
+    expect(at('b')).toBe('translate(850 144)');
+    const w = Number(svg.getAttribute('viewBox')!.split(' ')[2]);
+    expect(w).toBeGreaterThan(880);
+    const out = el.querySelector('.node-box.out')!.parentElement!;
+    expect(out.getAttribute('transform')).toBe(`translate(${w - 880} 0)`);
+  });
+
+  it('вентиль можно перетащить, «⌖» возвращает всё на место', () => {
+    const { f, at, svg, el } = view(1);
+    const g = el.querySelector('.gate[data-id="a"] .gate-body') as Element;
+    g.dispatchEvent(ev('pointerdown', { button: 0, clientX: 160, clientY: 40 }));
+    document.dispatchEvent(ev('pointermove', { clientX: 260, clientY: 90 }));
+    document.dispatchEvent(ev('pointerup', {}));
+    f.detectChanges();
+    expect(at('a')).toBe('translate(250 70)');
+    const back = el.querySelector(
+      'app-view-controls button[aria-label="Вернуть вид"]',
+    ) as HTMLButtonElement;
+    expect(back).not.toBeNull();
+    back.click();
+    f.detectChanges();
+    expect(at('a')).toBe('translate(150 20)');
+    expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+  });
+
+  it('колесо мыши двигает доску, Ctrl + колесо масштабирует', () => {
+    const { f, svg } = view(1);
+    svg.dispatchEvent(ev('pointerdown', { button: 1, clientX: 400, clientY: 200 }));
+    document.dispatchEvent(ev('pointermove', { clientX: 350, clientY: 200 }));
+    document.dispatchEvent(ev('pointerup', {}));
+    f.detectChanges();
+    expect(svg.getAttribute('viewBox')).toBe('50 0 880 440');
+    const zoom = new WheelEvent('wheel', {
+      deltaY: -300,
+      ctrlKey: true,
+      clientX: 300,
+      clientY: 200,
+      bubbles: true,
+      cancelable: true,
+    });
+    svg.dispatchEvent(zoom);
+    f.detectChanges();
+    expect(zoom.defaultPrevented).toBe(true);
+    expect(Number(svg.getAttribute('viewBox')!.split(' ')[2])).toBeLessThan(880);
   });
 });

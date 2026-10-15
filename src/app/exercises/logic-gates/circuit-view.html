@@ -1,6 +1,10 @@
 <svg
+  #svg
   class="cv"
-  [attr.viewBox]="'0 0 ' + W + ' ' + H()"
+  [class.panning]="panning()"
+  [class.zoom-ready]="zoomReady()"
+  [attr.viewBox]="viewBox()"
+  (pointerdown)="boardDown($event)"
   role="img"
   aria-label="Схема внутри блока (только просмотр)"
 >
@@ -9,7 +13,14 @@
       <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
     </pattern>
   </defs>
-  <rect class="cv-bg" [attr.width]="W" [attr.height]="H()" rx="10" fill="url(#cv-dots)" />
+  <rect
+    class="cv-bg"
+    [attr.x]="pan().x"
+    [attr.y]="pan().y"
+    [attr.width]="viewW()"
+    [attr.height]="viewH()"
+    fill="url(#cv-dots)"
+  />
 
   @for (w of wires(); track w.id) {
     <path class="wire-line" [class]="'wire-line ' + cls(wireVal(w))" [attr.d]="wireD(w)" />
@@ -42,7 +53,7 @@
   }
 
   @for (o of iface().outputs; track o) {
-    <g class="node">
+    <g class="node" [attr.transform]="'translate(' + extraW() + ' 0)'">
       <rect
         class="node-box out"
         x="788"
@@ -74,8 +85,8 @@
     </g>
   }
 
-  @for (g of gates(); track g.id) {
-    <g class="gate" [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'">
+  @for (g of placed(); track g.id) {
+    <g class="gate" [attr.data-id]="g.id" [attr.transform]="'translate(' + g.x + ' ' + g.y + ')'">
       <path class="gate-body" [attr.d]="body(g)" />
       @if (extra(g) !== null) {
         <path class="gate-extra" [attr.d]="extra(g)" />
@@ -114,3 +125,12 @@
     </g>
   }
 </svg>
+
+<app-view-controls
+  [zoom]="zoom()"
+  [changed]="viewChanged()"
+  (zoomIn)="zoomBy(ZOOM_STEP)"
+  (zoomOut)="zoomBy(1 / ZOOM_STEP)"
+  (resetZoom)="zoom.set(1)"
+  (reset)="resetView()"
+/>

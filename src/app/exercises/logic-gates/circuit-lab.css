@@ -893,3 +893,9 @@
   top: 1.75rem;
   right: 1.75rem;
 }
+
+/* на доске можно крутить колесом мыши — она «готова» к масштабу */
+.board-svg.zoom-ready {
+  outline: 2px solid hsl(var(--ring) / 0.35);
+  outline-offset: -2px;
+}

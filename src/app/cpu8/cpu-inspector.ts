@@ -6,6 +6,7 @@ import {
   BlockInterface,
   BlockSolution,
   Expansion,
+  GateSolution,
   Solution,
   ValueScope,
   childScope,
@@ -112,6 +113,12 @@ export class CpuInspector {
   protected spreadFor(s: BlockSolution): number {
     const n = s.instances.length;
     return n > 8 ? 1.7 : n > 3 ? 1.4 : 1.2;
+  }
+
+  /** Схема из вентилей: чем больше вентилей, тем сильнее их раздвигаем и тем мельче масштаб */
+  protected spreadForGates(g: GateSolution): number {
+    const n = g.gates.length;
+    return n > 40 ? 1.9 : n > 20 ? 1.6 : n > 8 ? 1.35 : 1.15;
   }
 
   protected into(id: string): void {

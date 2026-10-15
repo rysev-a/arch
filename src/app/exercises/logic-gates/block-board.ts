@@ -17,6 +17,7 @@ import {
   ZOOM,
   clampWorld,
   dragPan,
+  listenActivity,
   listenMiddleButton,
   listenZoomWheel,
   startPan,
@@ -138,6 +139,8 @@ export class BlockBoard {
 
   private readonly svg = viewChild<ElementRef<SVGSVGElement>>('svg');
   protected readonly panning = signal(false);
+  /** на доску нажали и курсор с неё не уходил: колесо мыши меняет масштаб */
+  protected readonly zoomReady = signal(false);
   private panDrag: PanDrag | null = null;
   /**
    * В режиме просмотра (заглянули внутрь блока) блоки тоже можно двигать — чтобы раздвинуть тесную
@@ -171,14 +174,19 @@ export class BlockBoard {
     const el = this.svg()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(listenActivity(el, (on) => this.zoomReady.set(on)));
     onCleanup(
-      listenZoomWheel(el, (event) => {
-        const m = this.metrics();
-        this.applyZoom(wheelFactor(event), {
-          x: event.clientX - m.rect.left - m.offX,
-          y: event.clientY - m.rect.top - m.offY,
-        });
-      }),
+      listenZoomWheel(
+        el,
+        (event) => {
+          const m = this.metrics();
+          this.applyZoom(wheelFactor(event), {
+            x: event.clientX - m.rect.left - m.offX,
+            y: event.clientY - m.rect.top - m.offY,
+          });
+        },
+        () => this.zoomReady(),
+      ),
     );
   });
 
