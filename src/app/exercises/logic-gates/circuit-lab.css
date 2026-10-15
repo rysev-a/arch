@@ -919,3 +919,65 @@
   outline: 2px solid hsl(var(--ring) / 0.35);
   outline-offset: -2px;
 }
+
+/* ===================== Окошко с заданием в полноэкранном режиме ===================== */
+.fs-task {
+  position: absolute;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: min(60vh, 28rem);
+  padding: 0.75rem 0.875rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--popover));
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 10px 32px rgb(0 0 0 / 0.2);
+}
+:host-context(html.dark) .fs-task {
+  border-color: hsl(0 0% 100% / 0.16);
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.05),
+    inset 0 1px 0 hsl(0 0% 100% / 0.1),
+    0 12px 32px rgb(0 0 0 / 0.45);
+}
+.fs-task.collapsed {
+  width: auto;
+}
+.fs-task-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.fs-task-title {
+  flex: 1;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+.fs-task-toggle {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: calc(var(--radius) - 4px);
+  background: transparent;
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+}
+.fs-task-toggle:hover {
+  background: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}
+.fs-task-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.fs-task-table {
+  min-height: 0;
+  overflow: auto;
+}

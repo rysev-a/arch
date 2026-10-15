@@ -183,6 +183,8 @@ export class CircuitLab {
   protected readonly editUnlocked = signal(false);
   /** доска развёрнута на весь экран */
   protected readonly fullscreen = signal(false);
+  /** окошко с заданием в полноэкранном режиме развёрнуто */
+  protected readonly fsTaskOpen = signal(true);
 
   /* ---------- упражнение и прогресс ---------- */
   protected readonly currentIndex = signal(0);

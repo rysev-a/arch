@@ -356,6 +356,48 @@
           </div>
         </div>
       }
+      @if (fullscreen() && !guideOn()) {
+        <!-- неподвижное окошко с заданием и таблицей истинности: всегда перед глазами -->
+        <aside class="fs-task pop-in" [class.collapsed]="!fsTaskOpen()" aria-label="Задание">
+          <div class="fs-task-head">
+            <span class="fs-task-title">Задание</span>
+            <span
+              class="badge"
+              [class.badge-success]="solved()"
+              [class.badge-secondary]="!solved()"
+            >
+              @if (isStepsMode()) {
+                Шаг {{ currentStepNo() }} / {{ totalSteps() }}
+              } @else {
+                {{ matched() }} / {{ exercise().target.length }}
+              }
+            </span>
+            <button
+              type="button"
+              class="fs-task-toggle"
+              (click)="fsTaskOpen.set(!fsTaskOpen())"
+              [attr.aria-expanded]="fsTaskOpen()"
+              [title]="fsTaskOpen() ? 'Свернуть' : 'Развернуть'"
+            >
+              {{ fsTaskOpen() ? '—' : '＋' }}
+            </button>
+          </div>
+          @if (fsTaskOpen()) {
+            <p class="fs-task-text">{{ exercise().task }}</p>
+            @if (tableRows().length > 0) {
+              <div class="fs-task-table">
+                <app-truth-table
+                  [rows]="tableRows()"
+                  [currentRow]="currentRow()"
+                  [inputIds]="activeInputs()"
+                  [labels]="labels()"
+                  [outputs]="activeOutputs()"
+                />
+              </div>
+            }
+          }
+        </aside>
+      }
       <div class="card-content board-wrap">
         @if (isBlocksMode()) {
           @if (current(); as cur) {
