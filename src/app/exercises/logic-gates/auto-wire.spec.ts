@@ -166,6 +166,19 @@ describe('автоподстановка связей на доске', () => {
     expect(wires()).toBe(1);
   });
 
+  it('связь, показанная пунктиром, остаётся, даже если элемент отпустили не рядом с контактом', () => {
+    const { f, item, svg, move, wires, dashed } = lab(true);
+    item.dispatchEvent(ev('pointerdown', { button: 0, clientX: 300, clientY: 300 }));
+    move(cxNearA, cyNearA);
+    expect(dashed()).toBe(1);
+    move(500, 300); // ушли далеко — пунктир держится
+    expect(dashed()).toBe(1);
+    svg.dispatchEvent(ev('pointerup', { button: 0, clientX: 500, clientY: 300 }));
+    f.detectChanges();
+    expect(wires()).toBe(1);
+    expect(dashed()).toBe(0);
+  });
+
   it('при выключенной настройке пунктира и проводов нет', () => {
     const { f, item, svg, move, wires, dashed } = lab(false);
     item.dispatchEvent(ev('pointerdown', { button: 0, clientX: 300, clientY: 300 }));

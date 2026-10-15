@@ -144,6 +144,9 @@ interface Level {
   scope: ValueScope;
 }
 
+/** id «призрака» элемента, пока его несут из палитры */
+const DROP_ID = 'auto-new';
+
 @Component({
   selector: 'app-circuit-lab',
   imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet, GuidePlayer, ViewControls],
@@ -385,7 +388,7 @@ export class CircuitLab {
     }
     const at = this.toBoard(cursor.x, cursor.y);
     const { x, y } = clampWorld({ x: at.x - GATE_W / 2, y: at.y - GATE_H / 2 }, GATE_W, GATE_H);
-    return { id: 'auto-new', type, x, y };
+    return { id: DROP_ID, type, x, y };
   });
 
   /** пунктирные провода автоподстановки для элемента, который ставят или двигают */
@@ -1081,12 +1084,14 @@ export class CircuitLab {
     }
     const placing = this.placing();
     if (placing) {
+      // пунктирные связи, которые показывались на лету: элемент ещё «не на доске», их надо запомнить
+      const held = this.autoWires();
       this.placing.set(null);
       this.cursorClient.set(null);
       const el = event.target as Element | null;
       if (el && typeof el.closest === 'function') {
         if (el.closest('.board-svg')) {
-          this.place(placing, this.toBoard(event.clientX, event.clientY), true);
+          this.place(placing, this.toBoard(event.clientX, event.clientY), held);
         } else if (el.closest('.palette')) {
           this.place(placing, this.defaultSpot());
         }
@@ -1358,11 +1363,14 @@ export class CircuitLab {
      Хелперы для шаблона
      ============================================================ */
 
-  protected place(type: GateType, at: Point, autoWire = false): void {
+  protected place(type: GateType, at: Point, held: readonly AutoWire[] | null = null): void {
     const { x, y } = clampWorld({ x: at.x - GATE_W / 2, y: at.y - GATE_H / 2 }, GATE_W, GATE_H);
     const gate: GateInstance = { id: uid('g'), type, x, y };
+    // связи, показанные пунктиром у «призрака», переносим на настоящий элемент
+    const remap = (r: PinRef): PinRef => (r.node === DROP_ID ? { ...r, node: gate.id } : r);
+    const keep = (held ?? []).map((w) => ({ ...w, from: remap(w.from), to: remap(w.to) }));
     const auto =
-      autoWire && this.settings.autoWire() && !this.isBlocksMode() ? this.autoWiresFor(gate) : [];
+      held && this.settings.autoWire() && !this.isBlocksMode() ? this.autoWiresFor(gate, keep) : [];
     this.gates.update((list) => [...list, gate]);
     if (auto.length > 0) this.addAutoWires(auto);
     else this.afterEdit();
