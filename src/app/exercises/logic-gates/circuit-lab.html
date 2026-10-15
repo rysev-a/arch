@@ -102,6 +102,9 @@
             </li>
             <li>Кнопка ▸ у порта раскрывает его поля — провод можно тянуть от отдельного поля.</li>
             <li>
+              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет.
+            </li>
+            <li>
               Кнопка с лупой на блоке показывает его внутренность — схему, которую вы собрали.
             </li>
           </ol>
@@ -111,6 +114,9 @@
             <li>Потяните за круглый контакт и отпустите на другом контакте — получится провод.</li>
             <li>Клик по проводу удаляет его, крестик на элементе — удаляет элемент.</li>
             <li>Щёлкайте по входам, чтобы менять 0 и 1, и следите за таблицей или сценарием.</li>
+            <li>
+              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет.
+            </li>
           </ol>
         }
       </div>
@@ -424,6 +430,7 @@
               [class.fill]="fullscreen()"
               [iface]="iface()"
               [library]="library()"
+              [(pan)]="pan"
               [(instances)]="instances"
               [(busWires)]="busWires"
               [expansion]="expansion()"
@@ -435,10 +442,22 @@
             />
           }
         } @else {
+          @if (panned()) {
+            <button
+              type="button"
+              class="btn btn-outline btn-sm view-reset"
+              (click)="resetView()"
+              title="Вернуть доску на место: к входам и выходам"
+            >
+              ⌖ Вернуть вид
+            </button>
+          }
           <svg
             #board
             class="board-svg"
-            [attr.viewBox]="'0 0 ' + BOARD_W + ' ' + BOARD_H"
+            [class.panning]="panning()"
+            [attr.viewBox]="pan().x + ' ' + pan().y + ' ' + BOARD_W + ' ' + BOARD_H"
+            (pointerdown)="boardDown($event)"
             role="img"
             aria-label="Интерактивная доска с логическими элементами"
           >
@@ -449,9 +468,10 @@
             </defs>
             <rect
               class="board-bg"
+              [attr.x]="pan().x"
+              [attr.y]="pan().y"
               [attr.width]="BOARD_W"
               [attr.height]="BOARD_H"
-              rx="10"
               fill="url(#dots)"
             />
 

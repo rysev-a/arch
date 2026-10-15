@@ -878,3 +878,19 @@
 .wire.guide-focus .wire-line {
   stroke-width: 4;
 }
+
+/* доска без границ: пустое место можно «взять рукой» */
+.board-bg {
+  cursor: grab;
+}
+.board-svg.panning,
+.board-svg.panning .board-bg {
+  cursor: grabbing;
+}
+
+.view-reset {
+  position: absolute;
+  top: 1.75rem;
+  right: 1.75rem;
+  z-index: 2;
+}

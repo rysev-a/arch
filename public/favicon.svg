@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Как работает процессор</title>
+  <style>
+    /* как логотип в шапке: плашка и значок меняются местами в светлой и тёмной теме */
+    .bg { fill: #fafafa; }
+    .ic { fill: none; stroke: #18181b; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; }
+    @media (prefers-color-scheme: light) {
+      .bg { fill: #18181b; }
+      .ic { stroke: #fafafa; }
+    }
+  </style>
+  <rect class="bg" width="64" height="64" rx="14" />
+  <g class="ic" transform="translate(11.2 11.2) scale(1.7)">
+    <rect x="7" y="7" width="10" height="10" rx="1.5" />
+    <path d="M10 2v3M14 2v3M10 19v3M14 19v3M2 10h3M2 14h3M19 10h3M19 14h3" />
+  </g>
+</svg>

@@ -2,7 +2,9 @@
   #svg
   class="bb"
   [class.readonly]="readonly()"
-  [attr.viewBox]="'0 0 ' + W + ' ' + height()"
+  [class.panning]="panning()"
+  [attr.viewBox]="pan().x + ' ' + pan().y + ' ' + W + ' ' + height()"
+  (pointerdown)="boardDown($event)"
   role="img"
   aria-label="Доска с блоками и шинами"
 >
@@ -11,7 +13,14 @@
       <circle cx="1.5" cy="1.5" r="1.5" class="grid-dot" />
     </pattern>
   </defs>
-  <rect class="bb-bg" [attr.width]="W" [attr.height]="height()" rx="10" fill="url(#bb-dots)" />
+  <rect
+    class="bb-bg"
+    [attr.x]="pan().x"
+    [attr.y]="pan().y"
+    [attr.width]="W"
+    [attr.height]="height()"
+    fill="url(#bb-dots)"
+  />
 
   <!-- ===== шины ===== -->
   @for (w of wiresView(); track w.id) {
@@ -206,3 +215,14 @@
     <path class="bwire-preview" [class.ok]="p.ok" [attr.d]="p.d" />
   }
 </svg>
+
+@if (viewChanged()) {
+  <button
+    type="button"
+    class="btn btn-outline btn-sm view-reset"
+    (click)="resetView()"
+    title="Вернуть доску на место"
+  >
+    ⌖ Вернуть вид
+  </button>
+}

@@ -1,5 +1,6 @@
 :host {
   display: block;
+  position: relative;
 }
 
 .bb {
@@ -31,9 +32,6 @@
 .bbox-head {
   fill: hsl(var(--muted) / 0.7);
   cursor: grab;
-}
-.bb.readonly .bbox-head {
-  cursor: default;
 }
 .bbox-title {
   fill: hsl(var(--foreground));
@@ -244,4 +242,19 @@
 }
 :host(.fill) .bb {
   height: 100%;
+}
+
+/* доска без границ: пустое место можно «взять рукой» */
+.bb-bg {
+  cursor: grab;
+}
+.bb.panning,
+.bb.panning .bb-bg {
+  cursor: grabbing;
+}
+
+.view-reset {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
 }

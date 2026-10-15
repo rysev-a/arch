@@ -3,13 +3,16 @@ import {
   ElementRef,
   HostListener,
   computed,
+  effect,
   input,
   model,
   output,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { NodeValue, Point, wirePath } from './circuit.model';
+import { PanDrag, clampWorld, dragPan, listenMiddleButton, startPan } from './board-pan';
 import {
   BlockInstance,
   BlockInterface,
@@ -31,7 +34,6 @@ import {
   BLOCK_W,
   BoxLayout,
   PinRow,
-  SIDE_W,
   layoutBox,
   pinCenter,
   rowKey,
@@ -75,6 +77,8 @@ export class BlockBoard {
   /** Узел входа-такта: подсвечивается на доске */
   readonly clockNode = input<string | null>(null);
   readonly height = input(BLOCKS_BOARD_H);
+  /** Сдвиг доски: она без границ, колесом мыши (или за пустое место) её можно двигать */
+  readonly pan = model<Point>({ x: 0, y: 0 });
 
   /** Щелчок по биту входа упражнения: узел, который нужно переключить */
   readonly toggle = output<string>();
@@ -88,6 +92,33 @@ export class BlockBoard {
   protected readonly Math = Math;
 
   private readonly svg = viewChild<ElementRef<SVGSVGElement>>('svg');
+  protected readonly panning = signal(false);
+  private panDrag: PanDrag | null = null;
+  /**
+   * В режиме просмотра (заглянули внутрь блока) блоки тоже можно двигать — чтобы раздвинуть тесную
+   * схему и разобраться. Это временная раскладка: сама схема не меняется, при смене схемы она сбрасывается.
+   */
+  private readonly moved = signal<Record<string, Point>>({});
+  protected readonly viewChanged = computed(
+    () => this.pan().x !== 0 || this.pan().y !== 0 || Object.keys(this.moved()).length > 0,
+  );
+
+  private readonly resetOnNewScheme = effect(() => {
+    this.instances(); // другая схема (или другой блок) — раскладка начинается заново
+    untracked(() => {
+      if (this.readonly()) {
+        this.moved.set({});
+        this.pan.set({ x: 0, y: 0 });
+      }
+    });
+  });
+
+  /** Колесо мыши: двигаем доску, не трогая блоки и шины под курсором */
+  private readonly middleButton = effect((onCleanup) => {
+    const el = this.svg()?.nativeElement;
+    if (!el) return;
+    onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+  });
 
   protected readonly expanded = signal<ReadonlySet<string>>(new Set());
   protected readonly pending = signal<BusEnd | null>(null);
@@ -117,7 +148,11 @@ export class BlockBoard {
         def?.title ?? 'Неизвестный блок',
         def?.ports ?? [],
         open,
-        { x: inst.x, y: inst.y, w: BLOCK_W },
+        {
+          x: this.moved()[inst.id]?.x ?? inst.x,
+          y: this.moved()[inst.id]?.y ?? inst.y,
+          w: BLOCK_W,
+        },
         'block',
       );
     });
@@ -310,7 +345,7 @@ export class BlockBoard {
   /* ---------- перемещение блоков ---------- */
 
   protected boxDown(event: PointerEvent, box: BoxLayout): void {
-    if (this.readonly() || box.kind !== 'block') return;
+    if (box.kind !== 'block') return;
     event.preventDefault();
     const p = this.toBoard(event.clientX, event.clientY);
     this.moveOffset = { x: p.x - box.x, y: p.y - box.y };
@@ -319,13 +354,20 @@ export class BlockBoard {
 
   @HostListener('document:pointermove', ['$event'])
   protected onMove(event: PointerEvent): void {
+    if (this.panDrag) {
+      this.pan.set(dragPan(this.panDrag, event));
+      return;
+    }
     const id = this.movingId();
     if (id) {
       const p = this.toBoard(event.clientX, event.clientY);
       const box = this.boxes().find((b) => b.node === id);
       const h = box?.h ?? 80;
-      const x = clamp(p.x - this.moveOffset.x, SIDE_W + 12, this.W - SIDE_W - 12 - BLOCK_W);
-      const y = clamp(p.y - this.moveOffset.y, 8, this.height() - h - 8);
+      const { x, y } = clampWorld(
+        { x: p.x - this.moveOffset.x, y: p.y - this.moveOffset.y },
+        BLOCK_W,
+        h,
+      );
       this.instances.update((list) => list.map((i) => (i.id === id ? { ...i, x, y } : i)));
       return;
     }
@@ -334,6 +376,11 @@ export class BlockBoard {
 
   @HostListener('document:pointerup')
   protected onUp(): void {
+    if (this.panDrag) {
+      this.panDrag = null;
+      this.panning.set(false);
+      return;
+    }
     if (this.movingId()) {
       this.movingId.set(null);
       return;
@@ -356,16 +403,38 @@ export class BlockBoard {
     const offsetX = (rect.width - this.W * scale) / 2;
     const offsetY = (rect.height - this.height() * scale) / 2;
     return {
-      x: (clientX - rect.left - offsetX) / scale,
-      y: (clientY - rect.top - offsetY) / scale,
+      x: (clientX - rect.left - offsetX) / scale + this.pan().x,
+      y: (clientY - rect.top - offsetY) / scale + this.pan().y,
     };
+  }
+
+  private boardScale(): number {
+    const rect = this.svg()!.nativeElement.getBoundingClientRect();
+    return Math.min(rect.width / this.W, rect.height / this.height());
+  }
+
+  private beginPan(event: PointerEvent): void {
+    this.panDrag = startPan(event, this.boardScale(), this.pan());
+    this.panning.set(true);
+  }
+
+  /** Левая кнопка на пустом месте доски тоже двигает её (для тачпадов и телефонов) */
+  protected boardDown(event: PointerEvent): void {
+    if (event.button !== 0 || this.pending()) return;
+    const target = event.target as Element;
+    if (target === this.svg()?.nativeElement || target.classList?.contains('bb-bg')) {
+      event.preventDefault();
+      this.beginPan(event);
+    }
+  }
+
+  /** Вернуть доску на место: сдвиг и (при просмотре) временную раскладку блоков */
+  protected resetView(): void {
+    this.pan.set({ x: 0, y: 0 });
+    this.moved.set({});
   }
 
   protected typeTitle(port: BlockPort): string {
     return port.type;
   }
-}
-
-function clamp(v: number, min: number, max: number): number {
-  return Math.min(max, Math.max(min, v));
 }

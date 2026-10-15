@@ -43,10 +43,6 @@ import {
   Circuit,
   COMPOSITE_GATES,
   GATE_H,
-  GATE_MAX_X,
-  GATE_MAX_Y,
-  GATE_MIN_X,
-  GATE_MIN_Y,
   GATE_W,
   GateInstance,
   GateType,
@@ -87,6 +83,7 @@ import {
 import { SECTIONS, Section } from '../../sections/sections';
 import { touchProgress } from '../../nav/progress';
 import { GuideAction } from './guides';
+import { PanDrag, clampWorld, dragPan, listenMiddleButton, startPan } from './board-pan';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
@@ -265,6 +262,11 @@ export class CircuitLab {
 
   /* ---------- интерактив ---------- */
   protected readonly placing = signal<GateType | null>(null);
+  /** сдвиг доски: она без границ, колесом мыши (или за пустое место) её можно двигать */
+  protected readonly pan = signal<Point>({ x: 0, y: 0 });
+  protected readonly panning = signal(false);
+  protected readonly panned = computed(() => this.pan().x !== 0 || this.pan().y !== 0);
+  private panDrag: PanDrag | null = null;
   protected readonly cursorClient = signal<Point | null>(null);
   protected readonly movingId = signal<string | null>(null);
   protected readonly pendingFrom = signal<PinRef | null>(null);
@@ -294,6 +296,13 @@ export class CircuitLab {
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
 
   private readonly boardEl = viewChild<ElementRef<SVGSVGElement>>('board');
+
+  /** Колесо мыши: двигаем доску, не трогая элементы под курсором */
+  private readonly middleButton = effect((onCleanup) => {
+    const el = this.boardEl()?.nativeElement;
+    if (!el) return;
+    onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+  });
 
   private readonly cleanup = this.destroyRef.onDestroy(() => {
     clearTimeout(this.clockTimer);
@@ -495,6 +504,7 @@ export class CircuitLab {
 
   private clearBoard(): void {
     this.stopClock();
+    this.pan.set({ x: 0, y: 0 });
     this.inputState.set(zeroInputs());
     this.gates.set([]);
     this.wires.set([]);
@@ -920,6 +930,10 @@ export class CircuitLab {
 
   @HostListener('document:pointermove', ['$event'])
   private onPointerMove(event: PointerEvent): void {
+    if (this.panDrag) {
+      this.pan.set(dragPan(this.panDrag, event));
+      return;
+    }
     if (this.placing()) {
       this.cursorClient.set({ x: event.clientX, y: event.clientY });
       return;
@@ -927,8 +941,11 @@ export class CircuitLab {
     const id = this.movingId();
     if (id) {
       const p = this.toBoard(event.clientX, event.clientY);
-      const x = this.clamp(p.x - this.moveOffset.x, GATE_MIN_X, GATE_MAX_X);
-      const y = this.clamp(p.y - this.moveOffset.y, GATE_MIN_Y, GATE_MAX_Y);
+      const { x, y } = clampWorld(
+        { x: p.x - this.moveOffset.x, y: p.y - this.moveOffset.y },
+        GATE_W,
+        GATE_H,
+      );
       this.gates.update((list) => list.map((g) => (g.id === id ? { ...g, x, y } : g)));
       return;
     }
@@ -939,6 +956,11 @@ export class CircuitLab {
 
   @HostListener('document:pointerup', ['$event'])
   private onPointerUp(event: PointerEvent): void {
+    if (this.panDrag) {
+      this.panDrag = null;
+      this.panning.set(false);
+      return;
+    }
     const placing = this.placing();
     if (placing) {
       this.placing.set(null);
@@ -1160,8 +1182,11 @@ export class CircuitLab {
     if ('place' in action) {
       const id = uid('g');
       this.guideGates.set(action.name, id);
-      const x = this.clamp(action.at.x - GATE_W / 2, GATE_MIN_X, GATE_MAX_X);
-      const y = this.clamp(action.at.y - GATE_H / 2, GATE_MIN_Y, GATE_MAX_Y);
+      const { x, y } = clampWorld(
+        { x: action.at.x - GATE_W / 2, y: action.at.y - GATE_H / 2 },
+        GATE_W,
+        GATE_H,
+      );
       this.gates.update((list) => [...list, { id, type: action.place, x, y }]);
       focus.add(id);
     } else if ('wire' in action) {
@@ -1206,8 +1231,7 @@ export class CircuitLab {
      ============================================================ */
 
   protected place(type: GateType, at: Point): void {
-    const x = this.clamp(at.x - GATE_W / 2, GATE_MIN_X, GATE_MAX_X);
-    const y = this.clamp(at.y - GATE_H / 2, GATE_MIN_Y, GATE_MAX_Y);
+    const { x, y } = clampWorld({ x: at.x - GATE_W / 2, y: at.y - GATE_H / 2 }, GATE_W, GATE_H);
     this.gates.update((list) => [...list, { id: uid('g'), type, x, y }]);
     this.afterEdit();
   }
@@ -1217,6 +1241,30 @@ export class CircuitLab {
     return { x: 400, y: 100 + (n % 4) * 70 };
   }
 
+  private boardScale(): number {
+    const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
+    return Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
+  }
+
+  private beginPan(event: PointerEvent): void {
+    this.panDrag = startPan(event, this.boardScale(), this.pan());
+    this.panning.set(true);
+  }
+
+  /** Левая кнопка на пустом месте доски тоже двигает её (для тачпадов и телефонов) */
+  protected boardDown(event: PointerEvent): void {
+    if (event.button !== 0 || this.placing() || this.pendingFrom()) return;
+    const target = event.target as Element;
+    if (target === this.boardEl()?.nativeElement || target.classList?.contains('board-bg')) {
+      event.preventDefault();
+      this.beginPan(event);
+    }
+  }
+
+  protected resetView(): void {
+    this.pan.set({ x: 0, y: 0 });
+  }
+
   private toBoard(clientX: number, clientY: number): Point {
     const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
     // доска вписана в контейнер с сохранением пропорций: в полноэкранном режиме есть поля по краям
@@ -1224,13 +1272,9 @@ export class CircuitLab {
     const offsetX = (rect.width - BOARD_W * scale) / 2;
     const offsetY = (rect.height - BOARD_H * scale) / 2;
     return {
-      x: (clientX - rect.left - offsetX) / scale,
-      y: (clientY - rect.top - offsetY) / scale,
+      x: (clientX - rect.left - offsetX) / scale + this.pan().x,
+      y: (clientY - rect.top - offsetY) / scale + this.pan().y,
     };
-  }
-
-  private clamp(v: number, min: number, max: number): number {
-    return Math.min(max, Math.max(min, v));
   }
 
   protected pos(ref: PinRef): Point {
