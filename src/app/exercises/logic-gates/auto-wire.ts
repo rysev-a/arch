@@ -3,8 +3,6 @@ import { gatePinsOf } from './gate-shapes';
 
 /** На каком расстоянии (в единицах доски) контакты считаются «близкими» */
 export const AUTO_WIRE_RADIUS = 56;
-/** Уже предложенная связь «держится» дольше: пунктир не мерцает, пока элемент тянут рядом */
-export const AUTO_WIRE_KEEP_RADIUS = 96;
 
 export interface AutoWire {
   from: PinRef;
@@ -25,7 +23,7 @@ export interface AutoWireInput {
   /** в пошаговом режиме циклы разрешены — это суть защёлок */
   stepsMode: boolean;
   radius?: number;
-  /** связи, предложенные на прошлом шаге этого же перетаскивания */
+  /** связи, предложенные раньше в этом же перетаскивании: раз появившись, они остаются до отпускания */
   keep?: readonly AutoWire[];
 }
 
@@ -39,7 +37,6 @@ const dist = (p: Point, q: Point): number => Math.hypot(p.x - q.x, p.y - q.y);
 export function suggestWires(input: AutoWireInput): AutoWire[] {
   const { gate, wires, inputYMap, outputYMap, stepsMode } = input;
   const radius = input.radius ?? AUTO_WIRE_RADIUS;
-  const keepRadius = Math.max(radius, AUTO_WIRE_KEEP_RADIUS);
   const keep = input.keep ?? [];
   const kept = (from: PinRef, to: PinRef): boolean =>
     keep.some((k) => samePin(k.from, from) && samePin(k.to, to));
@@ -75,7 +72,7 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
     const at = posOf(to);
     const near = sources
       .map((from) => ({ from, d: dist(posOf(from), at), held: kept(from, to) }))
-      .filter((c) => c.d <= (c.held ? keepRadius : radius))
+      .filter((c) => c.held || c.d <= radius)
       .sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
     for (const c of near) if (accept(c.from, to)) break;
   }
@@ -90,7 +87,7 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
   const near = sinks
     .filter((to) => !driven(to))
     .map((to) => ({ to, d: dist(posOf(to), outAt), held: kept(out, to) }))
-    .filter((c) => c.d <= (c.held ? keepRadius : radius))
+    .filter((c) => c.held || c.d <= radius)
     .sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
   for (const c of near) if (accept(out, c.to)) break;
 

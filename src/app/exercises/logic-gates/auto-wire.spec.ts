@@ -45,24 +45,41 @@ describe('автоподстановка связей: что предлагае
     expect(pairs).toContain('m.out>r.in0');
   });
 
-  it('уже предложенная связь держится, пока элемент не уйдёт далеко', () => {
+  it('появившаяся связь больше не исчезает, как бы далеко ни унесли элемент', () => {
     const near = ask({ id: 'g1', type: 'NOT', x: 130, y: 66 });
     expect(near.length).toBe(1);
-    const keep = (x: number) =>
+    const keep = (x: number, y = 66) =>
       suggestWires({
-        gate: { id: 'g1', type: 'NOT', x, y: 66 },
+        gate: { id: 'g1', type: 'NOT', x, y },
         gates: [],
         wires: [],
         inputYMap,
         outputYMap,
         stepsMode: false,
         keep: near,
-      }).length;
-    // вход на расстоянии ~80 от тумблера: заново не предложили бы, но удерживаем
-    expect(keep(172)).toBe(1);
-    expect(ask({ id: 'g1', type: 'NOT', x: 172, y: 66 }).length).toBe(0);
-    // ушли дальше удержания — пунктир исчезает
-    expect(keep(260)).toBe(0);
+      });
+    expect(ask({ id: 'g1', type: 'NOT', x: 400, y: 300 }).length).toBe(0);
+    const far = keep(400, 300);
+    expect(far.length).toBe(1);
+    expect(far[0].from).toEqual({ node: 'A', pin: 'out' });
+    expect(far[0].to).toEqual({ node: 'g1', pin: 'in0' });
+  });
+
+  it('удерживаемая связь пропадает, если вход уже занят другим проводом', () => {
+    const near = ask({ id: 'g1', type: 'NOT', x: 130, y: 66 });
+    const wires: Wire[] = [
+      { id: 'w1', from: { node: 'A', pin: 'out' }, to: { node: 'g1', pin: 'in0' } },
+    ];
+    const got = suggestWires({
+      gate: { id: 'g1', type: 'NOT', x: 400, y: 300 },
+      gates: [],
+      wires,
+      inputYMap,
+      outputYMap,
+      stepsMode: false,
+      keep: near,
+    });
+    expect(got).toEqual([]);
   });
 
   it('далёкие контакты не трогаем', () => {
