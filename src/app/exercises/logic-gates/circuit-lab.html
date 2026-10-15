@@ -95,62 +95,165 @@
 
   <!-- ===================== Основная колонка ===================== -->
   <section class="main">
-    <!-- Упражнение и прогресс -->
-    <div class="card">
-      <div class="card-header exercise-head">
-        <div class="exercise-head-text">
-          <h3 class="card-title">
-            Упражнение {{ currentIndex() + 1 }} из {{ exercises().length }} · {{ exercise().title }}
-          </h3>
-          <p class="card-description">{{ exercise().task }}</p>
+    <!-- Упражнение слева, таблица истинности (или сценарий) справа: схему сразу сверяют с таблицей -->
+    <div class="top-row">
+      <!-- Упражнение и прогресс -->
+      <div class="card">
+        <div class="card-header exercise-head">
+          <div class="exercise-head-text">
+            <h3 class="card-title">
+              Упражнение {{ currentIndex() + 1 }} из {{ exercises().length }} ·
+              {{ exercise().title }}
+            </h3>
+            <p class="card-description">{{ exercise().task }}</p>
+          </div>
+          <div class="exercise-nav">
+            <button
+              type="button"
+              class="btn btn-outline btn-icon"
+              (click)="prev()"
+              [disabled]="currentIndex() === 0"
+              title="Предыдущее упражнение"
+              aria-label="Предыдущее упражнение"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline btn-icon"
+              (click)="next()"
+              [disabled]="currentIndex() === exercises().length - 1"
+              title="Следующее упражнение"
+              aria-label="Следующее упражнение"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </button>
+          </div>
         </div>
-        <div class="exercise-nav">
-          <button
-            type="button"
-            class="btn btn-outline btn-icon"
-            (click)="prev()"
-            [disabled]="currentIndex() === 0"
-            title="Предыдущее упражнение"
-            aria-label="Предыдущее упражнение"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m15 18-6-6 6-6" />
-            </svg>
-          </button>
-          <button
-            type="button"
-            class="btn btn-outline btn-icon"
-            (click)="next()"
-            [disabled]="currentIndex() === exercises().length - 1"
-            title="Следующее упражнение"
-            aria-label="Следующее упражнение"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
-          </button>
+        <div class="card-content">
+          <app-dash-progress
+            [items]="dashItems()"
+            [current]="currentIndex()"
+            (pick)="selectExercise($event)"
+          />
         </div>
       </div>
-      <div class="card-content">
-        <app-dash-progress
-          [items]="dashItems()"
-          [current]="currentIndex()"
-          (pick)="selectExercise($event)"
-        />
+
+      <!-- ================= Таблица истинности / Сценарий ================= -->
+      <div class="card">
+        @if (isStepsMode()) {
+          <div class="card-header board-header">
+            <div>
+              <h3 class="card-title">Сценарий проверки</h3>
+              <p class="card-description">
+                Выполняйте шаги по порядку: устанавливайте тумблеры и добивайтесь нужных значений на
+                выходах
+              </p>
+            </div>
+            <span
+              class="badge"
+              [class.badge-success]="solved()"
+              [class.badge-secondary]="!solved()"
+            >
+              Шаг {{ currentStepNo() }} / {{ totalSteps() }}
+            </span>
+          </div>
+          <div class="card-content steps-panel">
+            @for (st of exercise().steps; track $index; let i = $index) {
+              <div
+                class="step-item"
+                [class.done]="i < passedSteps()"
+                [class.active]="i === passedSteps()"
+              >
+                <span class="step-no">
+                  @if (i < passedSteps()) {
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="3"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  } @else {
+                    {{ i + 1 }}
+                  }
+                </span>
+                <div class="step-body">
+                  <p class="step-text">{{ st.text }}</p>
+                  <div class="step-req">
+                    @if (st.pulses && st.pulses > 1) {
+                      <span class="req-chip pulses">тактов: {{ st.pulses }}</span>
+                    }
+                    @for (id of activeInputs(); track id) {
+                      <span class="req-chip" [class.hit]="inputState()[id] === st.inputs[id]">
+                        {{ inputLabel(id) }} = {{ st.inputs[id] }}
+                      </span>
+                    }
+                    <span class="req-sep">→</span>
+                    @for (o of activeOutputs(); track o) {
+                      @if (st.expect[o] !== undefined) {
+                        <span class="req-chip req-out" [class.hit]="valueAt(o) === st.expect[o]">
+                          {{ o }} = {{ st.expect[o] }}
+                        </span>
+                      }
+                    }
+                    @if (noExpectation(st)) {
+                      <span class="req-chip req-out hit">выход пока не проверяется</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="card-header board-header">
+            <div>
+              <h3
+                class="card-title"
+                title="Строка с подсветкой — текущее положение тумблеров на доске"
+              >
+                Таблица истинности
+              </h3>
+            </div>
+            <span
+              class="badge"
+              [class.badge-success]="solved()"
+              [class.badge-secondary]="!solved()"
+            >
+              {{ matched() }} / {{ exercise().target.length }}
+            </span>
+          </div>
+          <div class="card-content">
+            <app-truth-table
+              [rows]="tableRows()"
+              [currentRow]="currentRow()"
+              [inputIds]="activeInputs()"
+              [labels]="labels()"
+              [outputs]="activeOutputs()"
+            />
+          </div>
+        }
       </div>
     </div>
 
@@ -783,95 +886,6 @@
         </div>
       </div>
     }
-
-    <!-- ================= Таблица истинности / Сценарий ================= -->
-    <div class="card">
-      @if (isStepsMode()) {
-        <div class="card-header board-header">
-          <div>
-            <h3 class="card-title">Сценарий проверки</h3>
-            <p class="card-description">
-              Выполняйте шаги по порядку: устанавливайте тумблеры и добивайтесь нужных значений на
-              выходах
-            </p>
-          </div>
-          <span class="badge" [class.badge-success]="solved()" [class.badge-secondary]="!solved()">
-            Шаг {{ currentStepNo() }} / {{ totalSteps() }}
-          </span>
-        </div>
-        <div class="card-content steps-panel">
-          @for (st of exercise().steps; track $index; let i = $index) {
-            <div
-              class="step-item"
-              [class.done]="i < passedSteps()"
-              [class.active]="i === passedSteps()"
-            >
-              <span class="step-no">
-                @if (i < passedSteps()) {
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="3"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  >
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                } @else {
-                  {{ i + 1 }}
-                }
-              </span>
-              <div class="step-body">
-                <p class="step-text">{{ st.text }}</p>
-                <div class="step-req">
-                  @if (st.pulses && st.pulses > 1) {
-                    <span class="req-chip pulses">тактов: {{ st.pulses }}</span>
-                  }
-                  @for (id of activeInputs(); track id) {
-                    <span class="req-chip" [class.hit]="inputState()[id] === st.inputs[id]">
-                      {{ inputLabel(id) }} = {{ st.inputs[id] }}
-                    </span>
-                  }
-                  <span class="req-sep">→</span>
-                  @for (o of activeOutputs(); track o) {
-                    @if (st.expect[o] !== undefined) {
-                      <span class="req-chip req-out" [class.hit]="valueAt(o) === st.expect[o]">
-                        {{ o }} = {{ st.expect[o] }}
-                      </span>
-                    }
-                  }
-                  @if (noExpectation(st)) {
-                    <span class="req-chip req-out hit">выход пока не проверяется</span>
-                  }
-                </div>
-              </div>
-            </div>
-          }
-        </div>
-      } @else {
-        <div class="card-header board-header">
-          <div>
-            <h3 class="card-title">Таблица истинности</h3>
-            <p class="card-description">
-              Строка с подсветкой — текущее положение тумблеров на доске
-            </p>
-          </div>
-          <span class="badge" [class.badge-success]="solved()" [class.badge-secondary]="!solved()">
-            {{ matched() }} / {{ exercise().target.length }}
-          </span>
-        </div>
-        <div class="card-content">
-          <app-truth-table
-            [rows]="tableRows()"
-            [currentRow]="currentRow()"
-            [inputIds]="activeInputs()"
-            [labels]="labels()"
-            [outputs]="activeOutputs()"
-          />
-        </div>
-      }
-    </div>
   </section>
 
   <!-- призрак перетаскиваемого элемента -->

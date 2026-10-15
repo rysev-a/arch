@@ -989,3 +989,26 @@
   width: 1rem;
   height: 1rem;
 }
+
+/* ===================== Упражнение слева, таблица истинности справа ===================== */
+.top-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+/* заголовок таблицы и счётчик — в одну строку */
+.top-row .board-header {
+  flex-wrap: nowrap;
+  align-items: center;
+}
+/* длинный сценарий прокручивается внутри карточки, а не уводит доску вниз */
+.top-row .steps-panel {
+  max-height: 22rem;
+  overflow-y: auto;
+}
+@media (max-width: 1100px) {
+  .top-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
