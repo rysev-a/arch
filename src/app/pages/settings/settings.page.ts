@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { Slider } from '../../ui/slider';
 import { Switch } from '../../ui/switch';
 import {
+  AUTO_WIRE_RADIUS_FACTOR,
   AUTO_WIRE_RADIUS_MAX,
   AUTO_WIRE_RADIUS_MIN,
   SettingsService,
@@ -118,6 +119,7 @@ import {
 })
 export class SettingsPage {
   protected readonly settings = inject(SettingsService);
+  protected readonly factor = String(AUTO_WIRE_RADIUS_FACTOR).replace('.', ',');
   protected readonly min = AUTO_WIRE_RADIUS_MIN;
   protected readonly max = AUTO_WIRE_RADIUS_MAX;
 }
