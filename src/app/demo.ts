@@ -92,11 +92,15 @@ export async function installDemo(): Promise<boolean> {
 }
 
 /** Если в адресе есть ?demo — установить и перейти к финалу (сборке процессора) */
-export function runDemoIfRequested(): void {
+export function runDemoIfRequested(
+  notify: (title: string, text: string) => Promise<void> = async (_title, text) =>
+    console.error(text),
+): void {
   if (typeof location === 'undefined' || !new URLSearchParams(location.search).has('demo')) return;
   installDemo().then((ok) => {
     if (!ok) {
-      alert(
+      void notify(
+        'Демо недоступно',
         'Не удалось загрузить demo-solutions.json. Файл появился после запуска сервера — ' +
           'перезапустите `ng serve` и откройте адрес ещё раз.',
       );

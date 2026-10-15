@@ -91,6 +91,7 @@ import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
 import { confirmMarkChapter } from '../../progress/mark-solved';
+import { ConfirmService } from '../../ui/confirm.service';
 import { GuidePlayer } from '../../guide/guide-player';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
@@ -470,9 +471,9 @@ export class CircuitLab {
   );
 
   /** Кто уже знает материал, засчитывает всю главу разом */
-  protected markChapterSolved(): void {
+  protected async markChapterSolved(): Promise<void> {
     const section = this.section();
-    if (!confirmMarkChapter(section.title, this.exercises().length)) return;
+    if (!(await confirmMarkChapter(this.dialogs, section.title, this.exercises().length))) return;
     this.solvedSet.set(new Set(this.exercises().map((_, i) => i)));
     this.persist();
   }
@@ -719,17 +720,23 @@ export class CircuitLab {
   }
 
   /** Переход в упражнение, где собран блок: схема ставится на доску, исправленное решение обновит блок */
-  protected openEditor(def: BlockDef): void {
+  protected async openEditor(def: BlockDef): Promise<void> {
     const src = def.source;
     if (!src) return;
     const hasWork = (this.instances().length > 0 || this.gates().length > 0) && !this.solved();
     if (
       hasWork &&
-      !confirm('Несохранённая схема на этой доске пропадёт. Перейти к редактору блока?')
+      !(await this.dialogs.ask({
+        title: 'Перейти к редактору блока?',
+        description: 'Несохранённая схема на этой доске пропадёт.',
+        confirmText: 'Перейти',
+        cancelText: 'Остаться',
+        destructive: true,
+      }))
     ) {
       return;
     }
-    this.router.navigate(['/', src.sectionSlug, src.exerciseId], {
+    void this.router.navigate(['/', src.sectionSlug, src.exerciseId], {
       queryParams: { edit: 1 },
     });
   }
@@ -977,6 +984,7 @@ export class CircuitLab {
   /** идёт серия импульсов такта: «Вперёд» ждёт её окончания */
   protected readonly guideBusy = signal(false);
   private readonly session = inject(GuideSession);
+  private readonly dialogs = inject(ConfirmService);
   private guideGates = new Map<string, string>();
 
   protected readonly guideStep = computed(() => this.guide()?.steps[this.guidePos()] ?? null);
@@ -1003,10 +1011,20 @@ export class CircuitLab {
   });
 
   /** Кнопка «Режим авто» на доске */
-  protected startGuide(): void {
+  protected async startGuide(): Promise<void> {
     if (!this.guide()) return;
     const hasWork = (this.instances().length > 0 || this.gates().length > 0) && !this.solved();
-    if (hasWork && !confirm('Режим авто начнёт с чистой доски: ваша схема пропадёт. Продолжить?')) {
+    if (
+      hasWork &&
+      !(await this.dialogs.ask({
+        title: 'Начать с чистой доски?',
+        description:
+          'Режим авто собирает решение с нуля, поэтому схема на доске пропадёт. Продолжить?',
+        confirmText: 'Начать',
+        cancelText: 'Отмена',
+        destructive: true,
+      }))
+    ) {
       return;
     }
     if (!this.guideBlocksReady(true)) return;

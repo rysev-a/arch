@@ -21,6 +21,7 @@ import { gatePinsOf } from './gate-shapes';
 import { Guide, GuideAction } from './guides';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
+import { ConfirmService } from '../../ui/confirm.service';
 import { SECTIONS, Section } from '../../sections/sections';
 import {
   ALU_SOLUTIONS,
@@ -439,17 +440,22 @@ describe('режим авто: переходы и кнопки', () => {
     expect(el.textContent).toContain('нужны блоки из предыдущих упражнений');
   });
 
-  it('«Отметить решённым» в шапке засчитывает все упражнения главы и пропадает', () => {
-    const { el, click } = lab('simple-circuits', 'and');
+  it('«Отметить решённым» в шапке засчитывает все упражнения главы и пропадает', async () => {
+    const { f, el, click } = lab('simple-circuits', 'and');
     const total = SECTIONS[0].exercises.length;
+    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
     expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
-    const orig = window.confirm;
-    window.confirm = () => false; // передумали — ничего не меняется
+    ask.mockResolvedValueOnce(false); // передумали — ничего не меняется
     click('Отметить решённым');
+    await f.whenStable();
+    f.detectChanges();
     expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
-    window.confirm = () => true;
+    ask.mockResolvedValueOnce(true);
     click('Отметить решённым');
-    window.confirm = orig;
+    await f.whenStable();
+    f.detectChanges();
+    expect(ask).toHaveBeenCalledTimes(2);
+    expect(ask.mock.calls[0][0].title).toContain('Отметить главу');
     expect(el.querySelectorAll('.step-chip.solved').length).toBe(total);
     expect(
       [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),

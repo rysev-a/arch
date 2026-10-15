@@ -1,8 +1,10 @@
+import { vi } from 'vitest';
 import { Location } from '@angular/common';
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Router, provideRouter } from '@angular/router';
 import { routes } from '../app.routes';
+import { ConfirmService } from '../ui/confirm.service';
 import { CHAPTERS, chapterBySlug, chapterProgress } from './chapters/chapters';
 import { ChaptersPage } from './chapters/chapters.page';
 import { ChapterPage } from './chapter/chapter.page';
@@ -102,14 +104,14 @@ describe('страницы глав', () => {
     const el = harness.routeNativeElement as HTMLElement;
     const btn = () =>
       [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
-    const orig = window.confirm;
-    window.confirm = () => false;
+    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
     btn()!.click();
+    await harness.fixture.whenStable();
     harness.detectChanges();
     expect(el.textContent).toContain(`1 из ${asm.exercises.length} решено`);
-    window.confirm = () => true;
+    ask.mockResolvedValue(true);
     btn()!.click();
-    window.confirm = orig;
+    await harness.fixture.whenStable();
     harness.detectChanges();
     expect(el.textContent).toContain(`${asm.exercises.length} из ${asm.exercises.length} решено`);
     expect(btn()).toBeUndefined();

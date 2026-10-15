@@ -365,3 +365,8 @@ html.board-fullscreen {
     animation: none !important;
   }
 }
+
+/* пока открыто модальное окно, страница под ним не прокручивается (место под полосу зарезервировано) */
+html:has(dialog[open]) {
+  overflow: hidden;
+}

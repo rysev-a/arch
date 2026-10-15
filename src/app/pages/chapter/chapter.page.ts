@@ -2,6 +2,7 @@ import { Component, computed, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { progressVersion } from '../../nav/progress';
 import { confirmMarkChapter, markChapterSolved } from '../../progress/mark-solved';
+import { ConfirmService } from '../../ui/confirm.service';
 import { chapterBySlug, chapterProgress } from '../chapters/chapters';
 
 /** Страница главы: описание и список упражнений со статусами; у каждого упражнения своя ссылка */
@@ -13,6 +14,7 @@ import { chapterBySlug, chapterProgress } from '../chapters/chapters';
 })
 export class ChapterPage {
   private readonly data = inject(ActivatedRoute).snapshot.data;
+  private readonly dialogs = inject(ConfirmService);
 
   protected readonly chapter = computed(() => chapterBySlug(this.data['slug'])!);
   protected readonly progress = computed(() => {
@@ -29,9 +31,9 @@ export class ChapterPage {
   protected readonly started = computed(() => this.progress().done > 0);
 
   /** Кто уже знает тему, засчитывает всю главу разом */
-  protected markAll(): void {
+  protected async markAll(): Promise<void> {
     const c = this.chapter();
-    if (!confirmMarkChapter(c.title, c.exercises.length)) return;
+    if (!(await confirmMarkChapter(this.dialogs, c.title, c.exercises.length))) return;
     markChapterSolved(c);
   }
 

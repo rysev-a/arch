@@ -1,0 +1,32 @@
+<dialog
+  #dlg
+  class="dialog"
+  (cancel)="onCancel($event)"
+  aria-labelledby="dlg-title"
+  aria-describedby="dlg-desc"
+>
+  @if (service.request(); as r) {
+    <div class="dialog-content" role="alertdialog">
+      <div class="dialog-header">
+        <h2 id="dlg-title" class="dialog-title">{{ r.title }}</h2>
+        <p id="dlg-desc" class="dialog-description">{{ r.description }}</p>
+      </div>
+      <div class="dialog-footer">
+        @if (r.cancelText !== null) {
+          <button type="button" class="btn btn-outline" (click)="answer(false)">
+            {{ r.cancelText ?? 'Отмена' }}
+          </button>
+        }
+        <button
+          type="button"
+          class="btn"
+          [class.btn-default]="!r.destructive"
+          [class.btn-destructive]="r.destructive"
+          (click)="answer(true)"
+        >
+          {{ r.confirmText ?? 'Подтвердить' }}
+        </button>
+      </div>
+    </div>
+  }
+</dialog>

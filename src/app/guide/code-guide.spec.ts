@@ -7,6 +7,7 @@ import { RvLab } from '../riscv/rv-lab';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { codeGuideFor } from './code-registry';
 import { GuideSession } from './guide-session';
+import { ConfirmService } from '../ui/confirm.service';
 import { TASKS as ASM_TASKS } from '../asm/tasks';
 import { REAL_TASKS } from '../riscv/rv-real-tasks';
 import { RV_TASKS } from '../riscv/rv-tasks';
@@ -186,7 +187,7 @@ describe('режим авто для программ: в лаборатории
 describe('«Отметить решённым» для всей главы', () => {
   beforeEach(() => localStorage.clear());
 
-  it('в лаборатории программ засчитываются все задания и кнопка пропадает', () => {
+  it('в лаборатории программ засчитываются все задания и кнопка пропадает', async () => {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -205,10 +206,9 @@ describe('«Отметить решённым» для всей главы', () 
     const btn = () =>
       [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
     expect(btn()).toBeTruthy();
-    const orig = window.confirm;
-    window.confirm = () => true;
+    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
     btn()!.click();
-    window.confirm = orig;
+    await f.whenStable();
     f.detectChanges();
     expect(btn()).toBeUndefined();
     expect(el.querySelectorAll('.step-chip.solved').length).toBe(ASM_TASKS.length);

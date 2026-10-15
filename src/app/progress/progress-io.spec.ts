@@ -1,5 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { ComponentFixture } from '@angular/core/testing';
+import { vi } from 'vitest';
+import { ConfirmService } from '../ui/confirm.service';
 import { ProgressPanel } from './progress-panel';
 import {
   KeyValueStorage,
@@ -144,20 +146,21 @@ describe('панель «Ваш прогресс»', () => {
     localStorage.clear();
   });
 
-  it('сброс спрашивает подтверждение', () => {
+  it('сброс спрашивает подтверждение в окне и стирает только после «Стереть»', async () => {
     localStorage.setItem('processor-progress-v2-mux', '{"solved":[1],"current":0}');
     const el = f.nativeElement as HTMLElement;
     const reset = [...el.querySelectorAll('button')].find((b) =>
       b.textContent!.includes('Сбросить'),
     )!;
-    const orig = window.confirm;
-    window.confirm = () => false;
+    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
     reset.click();
+    await f.whenStable();
     expect(localStorage.getItem('processor-progress-v2-mux')).not.toBeNull();
-    window.confirm = () => true;
+    ask.mockResolvedValue(true);
     reset.click();
+    await f.whenStable();
     f.detectChanges();
+    expect(ask.mock.calls[0][0].destructive).toBe(true);
     expect(localStorage.getItem('processor-progress-v2-mux')).toBeNull();
-    window.confirm = orig;
   });
 });

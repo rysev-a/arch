@@ -1,12 +1,14 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { Breadcrumbs } from './nav/breadcrumbs';
 import { runDemoIfRequested } from './demo';
 import { SideNav } from './nav/side-nav';
+import { ConfirmDialog } from './ui/confirm-dialog';
+import { ConfirmService } from './ui/confirm.service';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, SideNav, Breadcrumbs],
+  imports: [RouterOutlet, RouterLink, SideNav, Breadcrumbs, ConfirmDialog],
   styleUrl: './app.css',
   templateUrl: './app.html',
 })
@@ -16,8 +18,10 @@ export class App {
 
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
 
+  private readonly dialogs = inject(ConfirmService);
+
   constructor() {
-    runDemoIfRequested();
+    runDemoIfRequested((title, text) => this.dialogs.notify(title, text));
   }
 
   private initialTheme(): 'light' | 'dark' {

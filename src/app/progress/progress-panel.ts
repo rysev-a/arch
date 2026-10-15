@@ -1,4 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { ConfirmService } from '../ui/confirm.service';
 import { touchProgress } from '../nav/progress';
 import { exportProgress, importProgress, progressFileName, resetProgress } from './progress-io';
 
@@ -56,6 +57,7 @@ import { exportProgress, importProgress, progressFileName, resetProgress } from 
   `,
 })
 export class ProgressPanel {
+  private readonly dialogs = inject(ConfirmService);
   protected readonly message = signal<{ ok: boolean; text: string } | null>(null);
 
   protected save(): void {
@@ -79,10 +81,17 @@ export class ProgressPanel {
     if (result.ok) touchProgress();
   }
 
-  protected reset(): void {
-    if (!confirm('Стереть весь прогресс в этом браузере? Сохраните его в файл, если он нужен.')) {
-      return;
-    }
+  protected async reset(): Promise<void> {
+    const sure = await this.dialogs.ask({
+      title: 'Стереть весь прогресс?',
+      description:
+        'Решённые упражнения и сохранённые в браузере схемы и программы будут удалены. ' +
+        'Если прогресс ещё нужен, сначала сохраните его в файл.',
+      confirmText: 'Стереть',
+      cancelText: 'Отмена',
+      destructive: true,
+    });
+    if (!sure) return;
     const n = resetProgress();
     touchProgress();
     this.message.set({

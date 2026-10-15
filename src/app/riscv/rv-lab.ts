@@ -15,6 +15,7 @@ import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guid
 import { codeGuideFor } from '../guide/code-registry';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
+import { ConfirmService } from '../ui/confirm.service';
 
 const STORAGE_KEY = 'processor-riscv-v1';
 const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
@@ -195,6 +196,7 @@ export class RvLab {
 
   /* ---------- режим авто ---------- */
   private readonly session = inject(GuideSession);
+  private readonly dialogs = inject(ConfirmService);
   private readonly slug = this.real ? 'real' : 'riscv';
   protected readonly guide = computed(() => codeGuideFor(this.slug, this.task().id));
   private readonly guideHost: CodeGuideHost = {
@@ -314,9 +316,9 @@ export class RvLab {
   protected readonly chapterSolved = computed(() => this.solved().size >= this.tasks.length);
 
   /** Кто уже знает материал, засчитывает всю главу разом */
-  protected markChapterSolved(): void {
+  protected async markChapterSolved(): Promise<void> {
     const title = CHAPTERS.find((c) => c.slug === this.slug)?.title ?? '';
-    if (!confirmMarkChapter(title, this.tasks.length)) return;
+    if (!(await confirmMarkChapter(this.dialogs, title, this.tasks.length))) return;
     this.solved.set(new Set(this.tasks.map((t) => t.id)));
     this.save();
   }
@@ -335,8 +337,14 @@ export class RvLab {
     if (w) this.windowId.set(w.id);
   }
 
-  protected showSolution(): void {
-    if (!confirm('Показать эталонное решение? Ваш текущий код будет заменён.')) return;
+  protected async showSolution(): Promise<void> {
+    const sure = await this.dialogs.ask({
+      title: 'Показать эталонное решение?',
+      description: 'Ваш текущий код в этом задании будет заменён решением.',
+      confirmText: 'Показать решение',
+      cancelText: 'Отмена',
+    });
+    if (!sure) return;
     this.codes.update((c) => ({ ...c, [this.task().id]: this.task().solution }));
     this.save();
   }

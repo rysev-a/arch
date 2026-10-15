@@ -1,12 +1,22 @@
 import { touchProgress } from '../nav/progress';
 import { Chapter } from '../pages/chapters/chapters';
+import { ConfirmService } from '../ui/confirm.service';
 
-/** Вопрос перед массовой отметкой: действие необратимо иначе как сбросом прогресса */
-export function confirmMarkChapter(chapterTitle: string, count: number): boolean {
-  return confirm(
-    `Отметить все упражнения главы «${chapterTitle}» (${count}) решёнными? ` +
-      'Это для тех, кто уже знает материал: счётчики и статусы станут «решено».',
-  );
+/** Вопрос перед массовой отметкой: иначе как сбросом прогресса её не отменить */
+export function confirmMarkChapter(
+  dialogs: ConfirmService,
+  chapterTitle: string,
+  count: number,
+): Promise<boolean> {
+  return dialogs.ask({
+    title: 'Отметить главу решённой?',
+    description:
+      `Все упражнения главы «${chapterTitle}» (${count}) будут считаться решёнными. ` +
+      'Это для тех, кто уже знает материал: счётчики и статусы станут «решено». ' +
+      'Отменить можно только сбросом прогресса.',
+    confirmText: 'Отметить решённым',
+    cancelText: 'Отмена',
+  });
 }
 
 /**

@@ -14,6 +14,7 @@ import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guid
 import { codeGuideFor } from '../guide/code-registry';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
+import { ConfirmService } from '../ui/confirm.service';
 
 const STORAGE_KEY = 'processor-asm-v1';
 const RUN_LIMIT = 100_000;
@@ -168,6 +169,7 @@ export class AsmLab {
 
   /* ---------- режим авто ---------- */
   private readonly session = inject(GuideSession);
+  private readonly dialogs = inject(ConfirmService);
   protected readonly guide = computed(() => codeGuideFor('asm', this.task().id));
   private readonly guideHost: CodeGuideHost = {
     guide: () => this.guide(),
@@ -272,9 +274,9 @@ export class AsmLab {
   protected readonly chapterSolved = computed(() => this.solved().size >= this.tasks.length);
 
   /** Кто уже знает материал, засчитывает всю главу разом */
-  protected markChapterSolved(): void {
+  protected async markChapterSolved(): Promise<void> {
     const title = CHAPTERS.find((c) => c.slug === 'asm')?.title ?? '';
-    if (!confirmMarkChapter(title, this.tasks.length)) return;
+    if (!(await confirmMarkChapter(this.dialogs, title, this.tasks.length))) return;
     this.solved.set(new Set(this.tasks.map((t) => t.id)));
     this.save();
   }
@@ -283,8 +285,14 @@ export class AsmLab {
     this.resets.update((n) => n + 1);
   }
 
-  protected showSolution(): void {
-    if (!confirm('Показать эталонное решение? Ваш текущий код будет заменён.')) return;
+  protected async showSolution(): Promise<void> {
+    const sure = await this.dialogs.ask({
+      title: 'Показать эталонное решение?',
+      description: 'Ваш текущий код в этом задании будет заменён решением.',
+      confirmText: 'Показать решение',
+      cancelText: 'Отмена',
+    });
+    if (!sure) return;
     this.codes.update((c) => ({ ...c, [this.task().id]: this.task().solution }));
     this.solutionShown.set(true);
     this.save();
