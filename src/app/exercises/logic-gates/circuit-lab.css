@@ -1123,9 +1123,11 @@
 @keyframes nudge-arrow {
   0%,
   100% {
+    opacity: 1;
     transform: translateX(0);
   }
   50% {
+    opacity: 0.25;
     transform: translateX(2px);
   }
 }
@@ -1133,6 +1135,7 @@
   .nudge,
   .nudge svg {
     animation: none;
+    opacity: 1;
   }
   .nudge {
     background: hsl(var(--success) / 0.18);
