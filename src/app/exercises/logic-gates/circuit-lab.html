@@ -76,18 +76,18 @@
             <button
               type="button"
               class="btn btn-sm"
-              [class.btn-default]="guideOn()"
-              [class.btn-outline]="!guideOn()"
-              [disabled]="!guide()"
-              (click)="guideOn() ? leaveGuide() : startGuide()"
-              [attr.aria-pressed]="guideOn()"
+              [class.btn-default]="gg.on()"
+              [class.btn-outline]="!gg.on()"
+              [disabled]="!gg.guide()"
+              (click)="gg.on() ? gg.leave() : gg.start()"
+              [attr.aria-pressed]="gg.on()"
               [title]="
-                guide()
+                gg.guide()
                   ? 'Пошаговый разбор: решение строится само, а каждый шаг объясняется'
                   : 'Для этого упражнения пока нет пошагового разбора'
               "
             >
-              {{ guideOn() ? '■ Режим авто' : '▶ Режим авто' }}
+              {{ gg.on() ? '■ Режим авто' : '▶ Режим авто' }}
             </button>
             @if (clockId()) {
               <div class="clock-controls" role="group" aria-label="Тактовый генератор">
@@ -140,11 +140,11 @@
             }
           </div>
         </div>
-        @if (fullscreen() && (solved() || isStepsMode() || guideOn())) {
+        @if (fullscreen() && (solved() || isStepsMode() || gg.on())) {
           <!-- условие и счёт — в окошке справа внизу; здесь только то, чего там нет -->
           <div class="fs-bar">
             <div class="fs-status" role="status">
-              @if (guideOn()) {
+              @if (gg.on()) {
                 <span
                   class="badge"
                   [class.badge-success]="solved()"
@@ -170,7 +170,7 @@
             </div>
           </div>
         }
-        @if (fullscreen() && !guideOn()) {
+        @if (fullscreen() && !gg.on()) {
           <!-- неподвижное окошко с заданием и таблицей истинности: всегда перед глазами -->
           <app-fullscreen-task
             [exercise]="exercise()"
@@ -299,7 +299,7 @@
               [stepsMode]="isStepsMode()"
               [valueFn]="valueAtFn"
               [palette]="paletteItems()"
-              [guideFocus]="guideFocus()"
+              [guideFocus]="gg.focus()"
               [fullscreen]="fullscreen()"
               (toggleInput)="toggleInput($event)"
               (edited)="afterEdit()"
@@ -348,21 +348,21 @@
     }
   </section>
 
-  @if (guideOn() && guideStep(); as step) {
+  @if (gg.on() && gg.step(); as step) {
     <app-guide-player
       [title]="step.title"
       [text]="step.text"
-      [index]="guidePos()"
-      [total]="guide()!.steps.length"
-      [busy]="clock.ticking() || guideBusy()"
+      [index]="gg.pos()"
+      [total]="gg.guide()!.steps.length"
+      [busy]="clock.ticking() || gg.busy()"
       [solved]="solved()"
-      [hasNextExercise]="nextExercise() !== null"
-      [(open)]="guideCardOpen"
-      (prev)="guidePrev()"
-      (next)="guideNext()"
-      (goNext)="goNextExercise()"
-      (jump)="guideJump($event)"
-      (closed)="leaveGuide()"
+      [hasNextExercise]="gg.nextExercise() !== null"
+      [(open)]="gg.cardOpen"
+      (prev)="gg.prev()"
+      (next)="gg.next()"
+      (goNext)="gg.goNext()"
+      (jump)="gg.jump($event)"
+      (closed)="gg.leave()"
     />
     <div class="guide-pad" aria-hidden="true"></div>
   }

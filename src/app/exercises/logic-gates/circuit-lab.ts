@@ -49,7 +49,6 @@ import {
   InputState,
   NodeValue,
   OUT_X,
-  PinRef,
   Point,
   TableRow,
   Wire,
@@ -60,19 +59,14 @@ import {
   outputYs,
   reserveUids,
   settleCircuit,
-  samePin,
-  uid,
   zeroInputs,
 } from './circuit.model';
 import { Exercise } from './exercises';
 import { RU_NAMES } from './gate-shapes';
 import { SECTIONS, Section } from '../../sections/sections';
-import { GuideAction } from './guides';
-import { clampWorld } from './board-pan';
 import { PixelLock } from '../../ui/pixel-lock';
 import { HintLink, HintPopover } from '../../ui/hint-popover';
 import { SettingsService } from '../../settings/settings.service';
-import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { CHAPTERS, nextInCourse } from '../../pages/chapters/chapters';
 import { ConfirmService } from '../../ui/confirm.service';
@@ -86,6 +80,7 @@ import { CheckPanel } from './lab/check-panel';
 import { FullscreenTask } from './lab/fullscreen-task';
 import { PaletteGate } from './lab/gate-palette';
 import { ClockController } from './lab/clock-controller';
+import { GateGuideController } from './lab/gate-guide';
 import { gateLockHint, isGateUnlocked, loadProgress, saveProgress } from './lab/exercise-progress';
 import { HISTORY_MAX, Sample, buildWave } from './lab/wave';
 
@@ -749,240 +744,46 @@ export class CircuitLab {
      Режим авто: пошаговый разбор (учебник + тренажёр)
      ============================================================ */
 
-  /** Разбор для текущего упражнения; null — для него разбора пока нет */
-  protected readonly guide = computed(() => guideFor(this.section().slug, this.exercise().id));
-  protected readonly guideOn = signal(false);
-  /** номер показанного шага (0 — вступление) */
-  protected readonly guidePos = signal(0);
-  protected readonly guideCardOpen = signal(true);
-  /** что шаг только что добавил на доске: подсвечивается */
-  protected readonly guideFocus = signal<ReadonlySet<string>>(new Set());
-  /** идёт серия импульсов такта: «Вперёд» ждёт её окончания */
-  protected readonly guideBusy = signal(false);
-  private readonly session = inject(GuideSession);
   private readonly dialogs = inject(ConfirmService);
-  private guideGates = new Map<string, string>();
-
-  protected readonly guideStep = computed(() => this.guide()?.steps[this.guidePos()] ?? null);
-
-  /** Куда ведёт «Следующее упражнение» на последнем шаге: дальше по курсу, в том числе в ассемблер */
-  protected readonly nextExercise = computed(() =>
-    nextInCourse(this.section().slug, this.exercise().id),
+  /** режим авто: разбор решения шаг за шагом */
+  protected readonly gg = new GateGuideController(
+    {
+      section: () => this.section(),
+      exercise: () => this.exercise(),
+      index: () => this.currentIndex(),
+      editing: () => this.loadSaved(),
+      solved: () => this.solved(),
+      library: () => this.library(),
+      gates: this.gates,
+      wires: this.wires,
+      instances: this.instances,
+      busWires: this.busWires,
+      clock: this.clock,
+      clockId: () => this.clockId(),
+      setInput: (id, level) => this.setInput(id, level),
+      afterEdit: () => this.afterEdit(),
+      clearBoard: () => this.clearBoard(),
+      setPassedSteps: (n) => this.passedSteps.set(n),
+      notify: (text) => this.notify(text),
+      confirm: (options) => this.dialogs.ask(options),
+      navigate: (commands) => void this.router.navigate(commands),
+    },
+    inject(GuideSession),
   );
-
-  /**
-   * Режим авто «залипает»: пока он включён, каждое упражнение открывается в нём.
-   * При смене упражнения доска чистая, поэтому разбор стартует без вопросов.
-   */
-  private readonly guideSyncEffect = effect(() => {
-    this.section();
-    this.currentIndex();
-    const wantAuto = this.session.auto();
-    const available = this.guide() !== null;
-    const edit = this.loadSaved();
-    untracked(() => {
-      if (wantAuto && available && !edit && this.guideBlocksReady(true)) this.beginGuide();
-      else this.stopGuide();
-    });
-  });
-
-  /** Кнопка «Режим авто» на доске */
-  protected async startGuide(): Promise<void> {
-    if (!this.guide()) return;
-    const hasWork = (this.instances().length > 0 || this.gates().length > 0) && !this.solved();
-    if (
-      hasWork &&
-      !(await this.dialogs.ask({
-        title: 'Начать с чистой доски?',
-        description:
-          'Режим авто собирает решение с нуля, поэтому схема на доске пропадёт. Продолжить?',
-        confirmText: 'Начать',
-        cancelText: 'Отмена',
-        destructive: true,
-      }))
-    ) {
-      return;
-    }
-    if (!this.guideBlocksReady(true)) return;
-    this.session.auto.set(true);
-    this.beginGuide();
-  }
-
-  /** Разбор «из блоков» нужны решения предыдущих упражнений; без них блоки в палитре закрыты */
-  private guideBlocksReady(announce: boolean): boolean {
-    const lib = this.library();
-    const missing = new Set<string>();
-    for (const step of this.guide()?.steps ?? []) {
-      for (const a of step.do ?? []) {
-        if ('block' in a && !lib.available(a.block.blockId)) missing.add(a.block.blockId);
-      }
-    }
-    if (missing.size === 0) return true;
-    if (announce) {
-      this.notify(
-        `Для разбора нужны блоки из предыдущих упражнений (${[...missing].join(', ')}): ` +
-          'пройдите их — можно тоже в режиме авто.',
-      );
-    }
-    return false;
-  }
-
-  private beginGuide(): void {
-    this.clock.stop();
-    this.clearBoard();
-    this.guideGates = new Map();
-    this.guideFocus.set(new Set());
-    this.guideBusy.set(false);
-    this.guidePos.set(0);
-    this.guideCardOpen.set(true);
-    this.guideOn.set(true);
-  }
-
-  /** «Выйти»: режим выключается и для следующих упражнений; схема остаётся на доске */
-  protected leaveGuide(): void {
-    this.session.auto.set(false);
-    this.stopGuide();
-  }
-
-  protected stopGuide(): void {
-    if (!this.guideOn()) return;
-    this.guideOn.set(false);
-    this.guideBusy.set(false);
-    this.guideFocus.set(new Set());
-  }
-
-  /** На последнем шаге «Вперёд» превращается в переход к следующему упражнению */
-  protected goNextExercise(): void {
-    const next = this.nextExercise();
-    if (!next) return;
-    void this.router.navigate(['/', next.slug, next.id]);
-  }
 
   @HostListener('document:keydown.arrowright', ['$event'])
   protected onGuideRight(e: Event): void {
-    if (this.guideOn() && !this.isTyping(e)) this.guideNext();
+    if (this.gg.on() && !this.isTyping(e)) this.gg.next();
   }
 
   @HostListener('document:keydown.arrowleft', ['$event'])
   protected onGuideLeft(e: Event): void {
-    if (this.guideOn() && !this.isTyping(e)) this.guidePrev();
+    if (this.gg.on() && !this.isTyping(e)) this.gg.prev();
   }
 
   private isTyping(e: Event): boolean {
     const t = e.target as HTMLElement | null;
     return !!t && (t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.tagName === 'INPUT');
-  }
-
-  protected guideNext(): void {
-    const guide = this.guide();
-    if (
-      !guide ||
-      this.clock.ticking() ||
-      this.guideBusy() ||
-      this.guidePos() >= guide.steps.length - 1
-    )
-      return;
-    const pos = this.guidePos() + 1;
-    this.guidePos.set(pos);
-    this.guideCardOpen.set(true);
-    this.applyGuideStep(pos, true);
-  }
-
-  protected guidePrev(): void {
-    if (this.guidePos() > 0) this.guideJump(this.guidePos() - 1);
-  }
-
-  /** Перейти к шагу: доска собирается заново и повторяет все шаги до него */
-  protected guideJump(target: number): void {
-    const guide = this.guide();
-    if (!guide) return;
-    const n = Math.max(0, Math.min(target, guide.steps.length - 1));
-    if (n === this.guidePos() && this.guideOn()) return;
-    this.clock.stop();
-    this.clearBoard();
-    this.guideGates = new Map();
-    let passed = -1;
-    for (let i = 1; i <= n; i++) {
-      this.applyGuideStep(i, false);
-      const c = guide.steps[i].completes;
-      if (c !== undefined) passed = Math.max(passed, c);
-    }
-    if (n === 0) this.guideFocus.set(new Set());
-    // шаги сценария упражнения, которые разбор уже прошёл
-    this.passedSteps.set(passed + 1);
-    this.guidePos.set(n);
-    this.guideCardOpen.set(true);
-  }
-
-  /** Выполнить действия шага на доске; live — импульс такта идёт по-настоящему, с задержкой */
-  private applyGuideStep(index: number, live: boolean): void {
-    const step = this.guide()?.steps[index];
-    const focus = new Set<string>();
-    for (const action of step?.do ?? []) this.applyGuideAction(action, live, focus);
-    this.guideFocus.set(focus);
-    this.afterEdit();
-  }
-
-  /** Серия настоящих тактовых импульсов с паузами, пока доска показывает каждый фронт */
-  private pulseSeries(count: number): void {
-    this.guideBusy.set(true);
-    let left = count;
-    const next = () => {
-      if (left-- <= 0 || !this.guideOn()) {
-        this.guideBusy.set(false);
-        return;
-      }
-      if (!this.clock.tick(next)) this.guideBusy.set(false);
-    };
-    next();
-  }
-
-  private applyGuideAction(action: GuideAction, live: boolean, focus: Set<string>): void {
-    if ('place' in action) {
-      const id = uid('g');
-      this.guideGates.set(action.name, id);
-      const { x, y } = clampWorld(
-        { x: action.at.x - GATE_W / 2, y: action.at.y - GATE_H / 2 },
-        GATE_W,
-        GATE_H,
-      );
-      this.gates.update((list) => [...list, { id, type: action.place, x, y }]);
-      focus.add(id);
-    } else if ('wire' in action) {
-      const node = (name: string) => this.guideGates.get(name) ?? name;
-      const { from, to, pin } = action.wire;
-      const target: PinRef = { node: node(to), pin };
-      const id = uid('w');
-      this.wires.update((list) => [
-        ...list.filter((w) => !samePin(w.to, target)),
-        { id, from: { node: node(from), pin: 'out' }, to: target },
-      ]);
-      focus.add(id);
-    } else if ('block' in action) {
-      const { id, blockId, x, y } = action.block;
-      this.instances.update((list) => [...list, { id, blockId, x, y }]);
-      focus.add(id);
-    } else if ('bus' in action) {
-      const { id, from, to } = action.bus;
-      this.busWires.update((list) => [...list, { id, from, to }]);
-      focus.add(id);
-    } else if ('set' in action) {
-      for (const [id, level] of Object.entries(action.set)) this.setInput(id as InputId, level);
-    } else {
-      const count = action.pulse === true ? 1 : action.pulse;
-      if (live) {
-        this.pulseSeries(count);
-      } else {
-        // при повторе шагов импульсы «прокручиваются» мгновенно
-        const clk = this.clockId();
-        if (clk) {
-          for (let i = 0; i < count; i++) {
-            this.setInput(clk, 1);
-            this.setInput(clk, 0);
-          }
-        }
-      }
-    }
   }
 
   /* ============================================================

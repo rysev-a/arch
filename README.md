@@ -36,6 +36,21 @@ ng build
 
 This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
 
+## Structure of the circuit exercises
+
+`src/app/exercises/logic-gates/circuit-lab.*` is the page of one exercise: it owns the circuit state, simulation, progress and the blocks workspace. Everything else lives in `lab/`:
+
+| File                                                                               | What it is                                                          |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `gate-board`                                                                       | the board with gates: dragging, wiring, auto-wire, pan/zoom, height |
+| `gate-palette`, `board-tools`                                                      | element palette and the clear / fullscreen icons                    |
+| `exercise-card`, `check-panel`, `success-alert`, `wave-diagram`, `fullscreen-task` | cards around the board                                              |
+| `gate-guide`                                                                       | the "auto mode" walkthrough controller                              |
+| `clock-controller`                                                                 | the CLK pulse button and generator                                  |
+| `exercise-progress`                                                                | progress in `localStorage` and which gates are unlocked             |
+
+Exercise data is checked by `exercise-texts.spec.ts` (signal names in texts must match the labels on the board).
+
 ## Running unit tests
 
 To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
