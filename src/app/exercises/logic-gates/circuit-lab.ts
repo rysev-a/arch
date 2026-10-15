@@ -324,6 +324,8 @@ export class CircuitLab {
   private appliedSection: Section | null = null;
   private moveOffset: Point = { x: 0, y: 0 };
   private moveFrom: Point = { x: 0, y: 0 };
+  /** связи, предложенные в этом перетаскивании (для удержания) */
+  private autoMemo: AutoWire[] = [];
   /** элемент сдвинули заметно (а не просто щёлкнули по нему) */
   private readonly movedFar = signal(false);
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
@@ -395,7 +397,10 @@ export class CircuitLab {
         ? (this.gates().find((g) => g.id === moving) ?? null)
         : null
       : this.dropGate();
-    return gate ? this.autoWiresFor(gate) : [];
+    // уже предложенные связи удерживаются при дальнейшем движении, пока элемент не уйдёт далеко
+    const wires = gate ? this.autoWiresFor(gate, this.autoMemo) : [];
+    this.autoMemo = wires;
+    return wires;
   });
 
   protected readonly autoWirePaths = computed(() =>
@@ -1363,8 +1368,9 @@ export class CircuitLab {
     else this.afterEdit();
   }
 
-  private autoWiresFor(gate: GateInstance): AutoWire[] {
+  private autoWiresFor(gate: GateInstance, keep: readonly AutoWire[] = []): AutoWire[] {
     return suggestWires({
+      keep,
       gate,
       gates: this.gates(),
       wires: this.wires(),

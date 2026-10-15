@@ -527,16 +527,17 @@
 }
 .wire-auto {
   fill: none;
-  stroke: hsl(var(--primary));
-  stroke-width: 2.5;
-  stroke-dasharray: 6 6;
+  stroke: hsl(217 91% 60% / 0.5);
+  stroke-width: 1.5;
+  stroke-dasharray: 5 6;
   stroke-linecap: round;
   pointer-events: none;
-  animation: wire-auto-flow 0.6s linear infinite;
+  /* штрихи бегут по проводу: от выхода ко входу */
+  animation: wire-auto-flow 0.7s linear infinite;
 }
 @keyframes wire-auto-flow {
   to {
-    stroke-dashoffset: -12;
+    stroke-dashoffset: -11;
   }
 }
 @media (prefers-reduced-motion: reduce) {

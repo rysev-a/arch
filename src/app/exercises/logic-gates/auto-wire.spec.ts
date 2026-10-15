@@ -45,6 +45,26 @@ describe('автоподстановка связей: что предлагае
     expect(pairs).toContain('m.out>r.in0');
   });
 
+  it('уже предложенная связь держится, пока элемент не уйдёт далеко', () => {
+    const near = ask({ id: 'g1', type: 'NOT', x: 130, y: 66 });
+    expect(near.length).toBe(1);
+    const keep = (x: number) =>
+      suggestWires({
+        gate: { id: 'g1', type: 'NOT', x, y: 66 },
+        gates: [],
+        wires: [],
+        inputYMap,
+        outputYMap,
+        stepsMode: false,
+        keep: near,
+      }).length;
+    // вход на расстоянии ~80 от тумблера: заново не предложили бы, но удерживаем
+    expect(keep(172)).toBe(1);
+    expect(ask({ id: 'g1', type: 'NOT', x: 172, y: 66 }).length).toBe(0);
+    // ушли дальше удержания — пунктир исчезает
+    expect(keep(260)).toBe(0);
+  });
+
   it('далёкие контакты не трогаем', () => {
     expect(ask({ id: 'g1', type: 'AND', x: 400, y: 300 })).toEqual([]);
   });
