@@ -77,6 +77,14 @@
   padding: 0 1.5rem;
 }
 
+.app-shell.no-side {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
+.app-shell.no-side .app-side {
+  display: none;
+}
+
 .app-side {
   position: sticky;
   top: 4.25rem;
@@ -117,6 +125,10 @@
 }
 
 @media (max-width: 900px) {
+  /* на узком экране меню и так прячется — отдельная кнопка не нужна */
+  .side-toggle {
+    display: none;
+  }
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
     gap: 0;

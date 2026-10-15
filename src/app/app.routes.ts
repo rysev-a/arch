@@ -61,6 +61,11 @@ export const routes: Routes = [
   },
   ...chapterRoutes,
   {
+    path: 'help',
+    loadComponent: () => import('./pages/help/help.page').then((m) => m.HelpPage),
+    title: `Как работать с проектом — ${TITLE}`,
+  },
+  {
     path: 'settings',
     loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
     title: `Настройки — ${TITLE}`,

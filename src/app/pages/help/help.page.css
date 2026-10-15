@@ -1,0 +1,1687 @@
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+}
+.help {
+  max-width: 62rem;
+}
+.page-title {
+  font-size: 1.375rem;
+}
+
+/* ---------- выбор раздела ---------- */
+.tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+.track {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  padding: 0.625rem 0.875rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: transparent;
+  color: hsl(var(--foreground));
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.track:hover {
+  background: hsl(var(--accent));
+}
+.track.on {
+  border-color: hsl(var(--primary));
+  background: hsl(var(--accent));
+}
+.track:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.track-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+.track-hint {
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+}
+
+/* ---------- сцена ---------- */
+.stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--muted) / 0.25);
+  /* слайды разной длины не должны двигать кнопки под ними */
+  min-height: 19.5rem;
+  outline: none;
+}
+.stage:focus-visible {
+  border-color: hsl(var(--ring));
+}
+.ill-wrap {
+  min-width: 0;
+}
+.ill {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 360 / 200;
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--background));
+  border: 1px solid hsl(var(--border));
+}
+.copy {
+  min-width: 0;
+  min-height: 12rem;
+}
+.count {
+  margin: 0 0 0.25rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+.slide-title {
+  margin: 0 0 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.slide-text {
+  margin: 0 0 0.75rem;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+}
+.slide-points {
+  margin: 0;
+  padding-left: 1.125rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  color: hsl(var(--muted-foreground));
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+/* ---------- управление ---------- */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+.dots {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.dot {
+  width: 0.625rem;
+  height: 0.625rem;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: hsl(var(--muted-foreground) / 0.35);
+  cursor: pointer;
+  transition:
+    width 0.2s ease,
+    background-color 0.2s ease;
+}
+.dot.seen {
+  background: hsl(var(--muted-foreground) / 0.7);
+}
+.dot.on {
+  width: 1.5rem;
+  background: hsl(var(--primary));
+}
+.dot:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.play {
+  flex: none;
+}
+
+@media (max-width: 760px) {
+  .stage {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+  .tracks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .copy {
+    min-height: 0;
+  }
+  .play {
+    display: none;
+  }
+}
+
+/* ============================================================
+   Иллюстрации
+   ============================================================ */
+.ill {
+  --blue: 217 91% 60%;
+  font-family: inherit;
+}
+.ill .bd {
+  fill: hsl(var(--muted) / 0.35);
+  stroke: hsl(var(--border));
+}
+.ill .win {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+}
+.ill .bar {
+  fill: hsl(var(--popover));
+  stroke: hsl(var(--border));
+}
+.ill .item,
+.ill .chip,
+.ill .blk,
+.ill .reg,
+.ill .cell {
+  fill: hsl(var(--card));
+  stroke: hsl(var(--border));
+}
+.ill .tx {
+  fill: hsl(var(--foreground));
+  font-size: 11.5px;
+}
+.ill .tm {
+  fill: hsl(var(--muted-foreground));
+  font-size: 10.5px;
+}
+.ill .tx.b {
+  font-weight: 700;
+}
+.ill .mono {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+}
+.ill .cm {
+  fill: hsl(var(--muted-foreground));
+}
+.ill .ok {
+  fill: hsl(var(--success));
+}
+.ill .onok {
+  fill: hsl(var(--success-foreground));
+}
+.ill .ln {
+  stroke: hsl(var(--border));
+  fill: none;
+}
+.ill .ph {
+  fill: hsl(var(--muted-foreground) / 0.35);
+}
+.ill .badge-bg {
+  fill: hsl(var(--secondary));
+}
+.ill .val-off {
+  fill: hsl(var(--muted));
+}
+.ill .val-on {
+  fill: hsl(var(--success));
+}
+.ill .btn-main {
+  fill: hsl(var(--primary));
+}
+.ill .btn-ghost {
+  fill: none;
+  stroke: hsl(var(--border));
+}
+.ill .fwd {
+  fill: hsl(var(--primary-foreground));
+}
+.ill .trk {
+  fill: hsl(var(--secondary));
+}
+.ill .trk-fill {
+  fill: hsl(var(--primary));
+  transform-box: fill-box;
+  transform-origin: left center;
+}
+.ill .seg-bg {
+  fill: hsl(var(--muted));
+}
+.ill .seg-on {
+  fill: hsl(var(--background));
+  stroke: hsl(var(--border));
+}
+.ill .hl {
+  fill: hsl(var(--accent));
+}
+.ill .caret {
+  display: none;
+}
+
+/* провода */
+.ill .wl {
+  fill: none;
+  stroke: hsl(var(--muted-foreground) / 0.55);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+}
+.ill .wl.on {
+  stroke: hsl(var(--success));
+}
+.ill .flow {
+  fill: none;
+  stroke: hsl(var(--success));
+  stroke-width: 2.2;
+  stroke-dasharray: 6 5;
+  stroke-linecap: round;
+  animation: flow 0.6s linear infinite;
+}
+.ill .lg1,
+.ill .lg0,
+.ill .lgx {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+.ill .lg1 {
+  stroke: hsl(var(--success));
+}
+.ill .lg0 {
+  stroke: hsl(var(--muted-foreground) / 0.55);
+}
+.ill .lgx {
+  stroke: hsl(var(--warning));
+  stroke-dasharray: 4 4;
+}
+@keyframes flow {
+  to {
+    stroke-dashoffset: -11;
+  }
+}
+
+/* ---------- drag ---------- */
+.drag-ghost {
+  animation: drag-ghost 6s ease-in-out infinite;
+}
+.drag-placed {
+  opacity: 0;
+  animation: drag-placed 6s ease-in-out infinite;
+}
+@keyframes drag-ghost {
+  0%,
+  14% {
+    transform: translate(0, 0);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(186px, 30px);
+    opacity: 1;
+  }
+  56%,
+  100% {
+    transform: translate(186px, 30px);
+    opacity: 0;
+  }
+}
+@keyframes drag-placed {
+  0%,
+  52% {
+    opacity: 0;
+  }
+  58%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- wire ---------- */
+.ill .wire-draw {
+  fill: none;
+  stroke: hsl(var(--foreground) / 0.8);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 260;
+  stroke-dashoffset: 260;
+  animation: wire-draw 6s ease-in-out infinite;
+}
+.wire-cur {
+  offset-path: path('M82 76 C160 76 170 126 246 126');
+  offset-rotate: 0deg;
+  animation: wire-cur 6s ease-in-out infinite;
+}
+@keyframes wire-draw {
+  0%,
+  14% {
+    stroke-dashoffset: 260;
+  }
+  48%,
+  88% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: 260;
+  }
+}
+@keyframes wire-cur {
+  0%,
+  14% {
+    offset-distance: 0%;
+    opacity: 1;
+  }
+  48%,
+  80% {
+    offset-distance: 100%;
+    opacity: 1;
+  }
+  90%,
+  100% {
+    offset-distance: 100%;
+    opacity: 0;
+  }
+}
+
+/* ---------- autowire ---------- */
+.aw-move {
+  animation: aw-move 6s ease-in-out infinite;
+}
+.ill .aw-range {
+  fill: hsl(var(--blue) / 0.07);
+  stroke: hsl(var(--blue) / 0.5);
+  stroke-dasharray: 3 5;
+  opacity: 0;
+  animation: aw-range 6s ease-in-out infinite;
+}
+.ill .aw-dash {
+  fill: none;
+  stroke: hsl(var(--blue) / 0.75);
+  stroke-width: 1.8;
+  stroke-dasharray: 5 6;
+  stroke-linecap: round;
+  opacity: 0;
+  animation:
+    aw-dash 6s ease-in-out infinite,
+    flow 0.7s linear infinite;
+}
+.ill .aw-solid {
+  fill: none;
+  stroke: hsl(var(--foreground) / 0.8);
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  opacity: 0;
+  animation: aw-solid 6s ease-in-out infinite;
+}
+.ill .aw-label {
+  opacity: 0;
+  animation: aw-label 6s ease-in-out infinite;
+}
+@keyframes aw-move {
+  0%,
+  8% {
+    transform: translate(70px, 50px);
+  }
+  40%,
+  100% {
+    transform: translate(0, 0);
+  }
+}
+@keyframes aw-range {
+  0%,
+  22% {
+    opacity: 0;
+  }
+  34%,
+  62% {
+    opacity: 1;
+  }
+  72%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes aw-dash {
+  0%,
+  36% {
+    opacity: 0;
+  }
+  42%,
+  64% {
+    opacity: 1;
+  }
+  68%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes aw-solid {
+  0%,
+  66% {
+    opacity: 0;
+  }
+  72%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes aw-label {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  50%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- toggle ---------- */
+.tg-on {
+  opacity: 0;
+  animation: show-on 6s ease-in-out infinite;
+}
+.tg-off {
+  animation: show-off 6s ease-in-out infinite;
+}
+.ill .tg-w1 {
+  animation: w-up 6s ease-in-out infinite;
+}
+.ill .tg-w2 {
+  animation: w-down 6s ease-in-out infinite;
+}
+.ill .click-ring {
+  fill: none;
+  stroke: hsl(var(--foreground));
+  stroke-width: 1.5;
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ring 6s ease-out infinite;
+}
+@keyframes show-on {
+  0%,
+  46% {
+    opacity: 0;
+  }
+  52%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes show-off {
+  0%,
+  46% {
+    opacity: 1;
+  }
+  52%,
+  92% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes w-up {
+  0%,
+  46% {
+    stroke: hsl(var(--muted-foreground) / 0.55);
+  }
+  52%,
+  92% {
+    stroke: hsl(var(--success));
+  }
+  100% {
+    stroke: hsl(var(--muted-foreground) / 0.55);
+  }
+}
+@keyframes w-down {
+  0%,
+  46% {
+    stroke: hsl(var(--success));
+  }
+  52%,
+  92% {
+    stroke: hsl(var(--muted-foreground) / 0.55);
+  }
+  100% {
+    stroke: hsl(var(--success));
+  }
+}
+@keyframes ring {
+  0%,
+  38% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  44% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+  56%,
+  100% {
+    opacity: 0;
+    transform: scale(1.6);
+  }
+}
+
+/* ---------- table ---------- */
+[data-slide='table'] .hl {
+  animation: hl-table 6s steps(1, end) infinite;
+}
+.ill .tb,
+.ill .tr {
+  opacity: 0;
+}
+@keyframes hl-table {
+  0% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  20% {
+    transform: translateY(26px);
+  }
+  40% {
+    transform: translateY(52px);
+  }
+  60% {
+    transform: translateY(78px);
+  }
+  80%,
+  100% {
+    transform: translateY(78px);
+    opacity: 0;
+  }
+}
+.ill .tb0 {
+  animation: tb0 6s steps(1, end) infinite;
+}
+@keyframes tb0 {
+  0% {
+    opacity: 1;
+  }
+  0% {
+    opacity: 1;
+  }
+  20.0% {
+    opacity: 0;
+  }
+}
+.ill .tb1 {
+  animation: tb1 6s steps(1, end) infinite;
+}
+@keyframes tb1 {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  40.0% {
+    opacity: 0;
+  }
+}
+.ill .tb2 {
+  animation: tb2 6s steps(1, end) infinite;
+}
+@keyframes tb2 {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  60.0% {
+    opacity: 0;
+  }
+}
+.ill .tb3 {
+  animation: tb3 6s steps(1, end) infinite;
+}
+@keyframes tb3 {
+  0% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  80.0% {
+    opacity: 0;
+  }
+}
+.ill .tb4 {
+  animation: tb4 6s steps(1, end) infinite;
+}
+@keyframes tb4 {
+  0% {
+    opacity: 0;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.ill .tr0 {
+  animation: tr0 6s steps(1, end) infinite;
+}
+@keyframes tr0 {
+  0% {
+    opacity: 1;
+  }
+  0% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.ill .tr1 {
+  animation: tr1 6s steps(1, end) infinite;
+}
+@keyframes tr1 {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .tr2 {
+  animation: tr2 6s steps(1, end) infinite;
+}
+@keyframes tr2 {
+  0% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .tr3 {
+  animation: tr3 6s steps(1, end) infinite;
+}
+@keyframes tr3 {
+  0% {
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- pan ---------- */
+.pan-world {
+  animation: pan 8s ease-in-out infinite;
+}
+.pan-cur {
+  animation: pan-cur 8s ease-in-out infinite;
+}
+.ill .pan-z1 {
+  opacity: 0;
+  animation: pan-z1 8s steps(1, end) infinite;
+}
+.ill .pan-z0 {
+  animation: pan-z0 8s steps(1, end) infinite;
+}
+@keyframes pan {
+  0%,
+  8% {
+    transform: translate(0, 0) scale(1);
+  }
+  35%,
+  50% {
+    transform: translate(-70px, -30px) scale(1);
+  }
+  75%,
+  92% {
+    transform: translate(-70px, -30px) scale(1.5);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+@keyframes pan-cur {
+  0%,
+  8% {
+    transform: translate(250px, 130px);
+  }
+  35%,
+  50% {
+    transform: translate(180px, 100px);
+  }
+  75%,
+  92% {
+    transform: translate(180px, 100px);
+  }
+  100% {
+    transform: translate(250px, 130px);
+  }
+}
+@keyframes pan-z1 {
+  0%,
+  50% {
+    opacity: 0;
+  }
+  50.1%,
+  92% {
+    opacity: 1;
+  }
+  92.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes pan-z0 {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.1%,
+  92% {
+    opacity: 0;
+  }
+  92.1%,
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---------- auto (плеер) ---------- */
+.ill .trk-fill {
+  animation: prog 6s linear infinite;
+}
+.ill .ph.p1,
+.ill .ph.p2 {
+  transform-box: fill-box;
+  transform-origin: left center;
+  animation: ph-grow 2s ease-out infinite;
+}
+.ill .ph.p2 {
+  animation-delay: 0.35s;
+}
+.ill .auto-n {
+  opacity: 0;
+}
+.ill .auto-n.n1 {
+  animation: n1 6s steps(1, end) infinite;
+}
+.ill .auto-n.n2 {
+  animation: n2 6s steps(1, end) infinite;
+}
+.ill .auto-n.n3 {
+  animation: n3 6s steps(1, end) infinite;
+}
+.ill .btn-main {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ill .fwd {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+[data-slide='auto'] .btn-main,
+[data-slide='asmauto'] .btn-main {
+  animation: nudge 2s ease-in-out infinite;
+}
+@keyframes prog {
+  0% {
+    transform: scaleX(0.04);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes ph-grow {
+  0% {
+    transform: scaleX(0);
+  }
+  60%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes n1 {
+  0% {
+    opacity: 1;
+  }
+  33.3%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes n2 {
+  0%,
+  33.3% {
+    opacity: 0;
+  }
+  33.4%,
+  66.6% {
+    opacity: 1;
+  }
+  66.7%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes n3 {
+  0%,
+  66.6% {
+    opacity: 0;
+  }
+  66.7%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes nudge {
+  0%,
+  70%,
+  100% {
+    transform: scale(1);
+  }
+  85% {
+    transform: scale(1.07);
+  }
+}
+
+/* ---------- fullscreen ---------- */
+.fs-card {
+  transform-origin: 180px 100px;
+  animation: fs-card 6s ease-in-out infinite;
+}
+.fs-task {
+  opacity: 0;
+  animation: fs-task 6s ease-in-out infinite;
+}
+@keyframes fs-card {
+  0%,
+  12% {
+    transform: scale(0.58);
+  }
+  38%,
+  86% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.58);
+  }
+}
+@keyframes fs-task {
+  0%,
+  42% {
+    opacity: 0;
+  }
+  52%,
+  86% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- code / bytes ---------- */
+.ill .type {
+  clip-path: inset(0 100% 0 0);
+}
+[data-slide='bytes'] .hl {
+  animation: hl-bytes 6s steps(1, end) infinite;
+}
+@keyframes hl-bytes {
+  0% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(28px);
+  }
+  50% {
+    transform: translateY(56px);
+  }
+  75% {
+    transform: translateY(84px);
+  }
+}
+.ill .type0 {
+  animation: type0 8s steps(16, end) infinite;
+}
+@keyframes type0 {
+  0%,
+  4% {
+    clip-path: inset(0 100% 0 0);
+  }
+  16%,
+  96% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+.ill .type1 {
+  animation: type1 8s steps(16, end) infinite;
+}
+@keyframes type1 {
+  0%,
+  19% {
+    clip-path: inset(0 100% 0 0);
+  }
+  31%,
+  96% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+.ill .type2 {
+  animation: type2 8s steps(16, end) infinite;
+}
+@keyframes type2 {
+  0%,
+  34% {
+    clip-path: inset(0 100% 0 0);
+  }
+  46%,
+  96% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+.ill .type3 {
+  animation: type3 8s steps(16, end) infinite;
+}
+@keyframes type3 {
+  0%,
+  49% {
+    clip-path: inset(0 100% 0 0);
+  }
+  61%,
+  96% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+.ill .type4 {
+  animation: type4 8s steps(16, end) infinite;
+}
+@keyframes type4 {
+  0%,
+  64% {
+    clip-path: inset(0 100% 0 0);
+  }
+  76%,
+  96% {
+    clip-path: inset(0 0 0 0);
+  }
+  100% {
+    clip-path: inset(0 100% 0 0);
+  }
+}
+
+/* ---------- step ---------- */
+.ill .step-btn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: step-press 6s ease-in-out infinite;
+}
+.ill .st-b,
+.ill .st-d,
+.ill .d-b {
+  opacity: 0;
+}
+.ill .st-a {
+  animation: swap-out-1 6s steps(1, end) infinite;
+}
+.ill .st-b {
+  animation: swap-in-1 6s steps(1, end) infinite;
+}
+.ill .st-c {
+  animation: swap-out-2 6s steps(1, end) infinite;
+}
+.ill .st-d {
+  animation: swap-in-2 6s steps(1, end) infinite;
+}
+.ill .d-a {
+  animation: swap-out-3 6s steps(1, end) infinite;
+}
+.ill .d-b {
+  animation: swap-in-3 6s steps(1, end) infinite;
+}
+.ill .reg:not(.r2) {
+  animation: flash-1 6s ease-in-out infinite;
+}
+.ill .reg.r2 {
+  animation: flash-2 6s ease-in-out infinite;
+}
+.ill .cell0 {
+  animation: flash-3 6s ease-in-out infinite;
+}
+@keyframes step-press {
+  0%,
+  16%,
+  26%,
+  41%,
+  51%,
+  66%,
+  76%,
+  100% {
+    transform: scale(1);
+  }
+  20%,
+  45%,
+  70% {
+    transform: scale(0.94);
+  }
+}
+@keyframes swap-out-1 {
+  0%,
+  20% {
+    opacity: 1;
+  }
+  20.1%,
+  95% {
+    opacity: 0;
+  }
+  95.1%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes swap-in-1 {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  20.1%,
+  95% {
+    opacity: 1;
+  }
+  95.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes swap-out-2 {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  45.1%,
+  95% {
+    opacity: 0;
+  }
+  95.1%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes swap-in-2 {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  45.1%,
+  95% {
+    opacity: 1;
+  }
+  95.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes swap-out-3 {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  70.1%,
+  95% {
+    opacity: 0;
+  }
+  95.1%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes swap-in-3 {
+  0%,
+  70% {
+    opacity: 0;
+  }
+  70.1%,
+  95% {
+    opacity: 1;
+  }
+  95.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes flash-1 {
+  0%,
+  20% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+  24%,
+  38% {
+    stroke: hsl(var(--success));
+    fill: hsl(var(--success) / 0.14);
+  }
+  50%,
+  100% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+}
+@keyframes flash-2 {
+  0%,
+  45% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+  49%,
+  63% {
+    stroke: hsl(var(--success));
+    fill: hsl(var(--success) / 0.14);
+  }
+  75%,
+  100% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+}
+@keyframes flash-3 {
+  0%,
+  70% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+  74%,
+  92% {
+    stroke: hsl(var(--success));
+    fill: hsl(var(--success) / 0.14);
+  }
+  100% {
+    stroke: hsl(var(--border));
+    fill: hsl(var(--card));
+  }
+}
+
+/* ---------- engine ---------- */
+.ill .seg-on {
+  animation: seg-move 7s ease-in-out infinite;
+}
+.ill .seg-t0,
+.ill .seg-t1b {
+  animation: seg-left 7s steps(1, end) infinite;
+}
+.ill .seg-t0b,
+.ill .seg-t1 {
+  opacity: 0;
+  animation: seg-right 7s steps(1, end) infinite;
+}
+.ill .gates-view {
+  opacity: 0;
+  animation: gates-in 7s ease-in-out infinite;
+}
+.ill .emu-view {
+  animation: emu-out 7s ease-in-out infinite;
+}
+@keyframes seg-move {
+  0%,
+  36% {
+    transform: translateX(0);
+  }
+  46%,
+  92% {
+    transform: translateX(148px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+@keyframes seg-left {
+  0%,
+  41% {
+    opacity: 1;
+  }
+  41.1%,
+  95% {
+    opacity: 0;
+  }
+  95.1%,
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes seg-right {
+  0%,
+  41% {
+    opacity: 0;
+  }
+  41.1%,
+  95% {
+    opacity: 1;
+  }
+  95.1%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes gates-in {
+  0%,
+  44% {
+    opacity: 0;
+  }
+  58%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes emu-out {
+  0%,
+  38% {
+    opacity: 1;
+  }
+  46%,
+  94% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* ---------- real ---------- */
+.ill .out-box,
+.ill .out-t {
+  opacity: 0;
+  animation: out-in 6s ease-in-out infinite;
+}
+@keyframes out-in {
+  0%,
+  45% {
+    opacity: 0;
+  }
+  60%,
+  92% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---------- progress ---------- */
+.ill .pchip {
+  fill: hsl(var(--muted));
+}
+.ill .ptick {
+  opacity: 0;
+}
+.ill .save-btn {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: save-press 8s ease-in-out infinite;
+}
+.ill .saved {
+  opacity: 0;
+  animation: saved-in 8s ease-in-out infinite;
+}
+@keyframes save-press {
+  0%,
+  78%,
+  90%,
+  100% {
+    transform: scale(1);
+  }
+  83% {
+    transform: scale(0.94);
+  }
+}
+@keyframes saved-in {
+  0%,
+  84% {
+    opacity: 0;
+  }
+  90%,
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip0 {
+  animation: pchip0 8s steps(1, end) infinite;
+}
+.ill .ptick0 {
+  animation: ptick0 8s steps(1, end) infinite;
+}
+@keyframes pchip0 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  6% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick0 {
+  0% {
+    opacity: 0;
+  }
+  6% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip1 {
+  animation: pchip1 8s steps(1, end) infinite;
+}
+.ill .ptick1 {
+  animation: ptick1 8s steps(1, end) infinite;
+}
+@keyframes pchip1 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  14% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick1 {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip2 {
+  animation: pchip2 8s steps(1, end) infinite;
+}
+.ill .ptick2 {
+  animation: ptick2 8s steps(1, end) infinite;
+}
+@keyframes pchip2 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  22% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick2 {
+  0% {
+    opacity: 0;
+  }
+  22% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip3 {
+  animation: pchip3 8s steps(1, end) infinite;
+}
+.ill .ptick3 {
+  animation: ptick3 8s steps(1, end) infinite;
+}
+@keyframes pchip3 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  30% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick3 {
+  0% {
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip4 {
+  animation: pchip4 8s steps(1, end) infinite;
+}
+.ill .ptick4 {
+  animation: ptick4 8s steps(1, end) infinite;
+}
+@keyframes pchip4 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  38% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick4 {
+  0% {
+    opacity: 0;
+  }
+  38% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip5 {
+  animation: pchip5 8s steps(1, end) infinite;
+}
+.ill .ptick5 {
+  animation: ptick5 8s steps(1, end) infinite;
+}
+@keyframes pchip5 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  46% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick5 {
+  0% {
+    opacity: 0;
+  }
+  46% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip6 {
+  animation: pchip6 8s steps(1, end) infinite;
+}
+.ill .ptick6 {
+  animation: ptick6 8s steps(1, end) infinite;
+}
+@keyframes pchip6 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  54% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick6 {
+  0% {
+    opacity: 0;
+  }
+  54% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.ill .pchip7 {
+  animation: pchip7 8s steps(1, end) infinite;
+}
+.ill .ptick7 {
+  animation: ptick7 8s steps(1, end) infinite;
+}
+@keyframes pchip7 {
+  0% {
+    fill: hsl(var(--muted));
+  }
+  62% {
+    fill: hsl(var(--success));
+  }
+  96% {
+    fill: hsl(var(--success));
+  }
+  100% {
+    fill: hsl(var(--muted));
+  }
+}
+@keyframes ptick7 {
+  0% {
+    opacity: 0;
+  }
+  62% {
+    opacity: 1;
+  }
+  96% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* при «уменьшить анимацию» слайды сами не листаются (см. страницу), но картинки — суть слайда,
+   так что они остаются живыми; эти переходы — лишь украшение */
+@media (prefers-reduced-motion: reduce) {
+  .dot,
+  .track {
+    transition: none;
+  }
+}

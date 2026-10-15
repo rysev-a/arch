@@ -16,6 +16,9 @@ export class App {
   /** На узком экране список разделов прячется и открывается кнопкой в шапке */
   protected readonly menuOpen = signal(false);
 
+  /** Левое меню можно спрятать, чтобы освободить место: выбор запоминается */
+  protected readonly sideHidden = signal(this.initialSideHidden());
+
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
 
   private readonly dialogs = inject(ConfirmService);
@@ -32,6 +35,24 @@ export class App {
       // localStorage может быть недоступен — остаёмся в тёмной теме
     }
     return 'dark';
+  }
+
+  private initialSideHidden(): boolean {
+    try {
+      return localStorage.getItem('processor-side-hidden') === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  protected toggleSide(): void {
+    const next = !this.sideHidden();
+    this.sideHidden.set(next);
+    try {
+      localStorage.setItem('processor-side-hidden', next ? '1' : '0');
+    } catch {
+      // игнорируем — выбор просто не сохранится
+    }
   }
 
   protected toggleTheme(): void {
