@@ -1131,13 +1131,22 @@
     transform: translateX(2px);
   }
 }
+/* при «уменьшить анимацию» остаётся только плавное мигание прозрачности — без сдвига и расходящегося кольца */
 @media (prefers-reduced-motion: reduce) {
-  .nudge,
-  .nudge svg {
+  .nudge {
     animation: none;
+    background: hsl(var(--success) / 0.18);
+  }
+  .nudge svg {
+    animation: nudge-fade 1.8s ease-in-out infinite;
+  }
+}
+@keyframes nudge-fade {
+  0%,
+  100% {
     opacity: 1;
   }
-  .nudge {
-    background: hsl(var(--success) / 0.18);
+  50% {
+    opacity: 0.25;
   }
 }
