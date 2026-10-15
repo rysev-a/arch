@@ -54,4 +54,14 @@ describe('страница настроек', () => {
     localStorage.setItem('processor-settings-v1', JSON.stringify({ autoWireRadius: 5000 }));
     expect(TestBed.inject(SettingsService).autoWireRadius()).toBe(108);
   });
+
+  it('на странице настроек есть управление прогрессом: сохранить, загрузить, сбросить', () => {
+    const f = TestBed.createComponent(SettingsPage);
+    f.detectChanges();
+    const text = (f.nativeElement as HTMLElement).textContent ?? '';
+    expect(text).toContain('Ваш прогресс');
+    expect(text).toContain('Сохранить в файл');
+    expect(text).toContain('Загрузить из файла');
+    expect(text).toContain('Сбросить прогресс');
+  });
 });

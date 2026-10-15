@@ -1,4 +1,5 @@
 import { Component, inject } from '@angular/core';
+import { ProgressPanel } from '../../progress/progress-panel';
 import { Slider } from '../../ui/slider';
 import { Switch } from '../../ui/switch';
 import {
@@ -11,15 +12,13 @@ import {
 /** Страница настроек: переключатели в стиле shadcn */
 @Component({
   selector: 'app-settings-page',
-  imports: [Switch, Slider],
+  imports: [Switch, Slider, ProgressPanel],
   template: `
     <div class="settings">
       <div class="card">
         <div class="card-header">
           <h2 class="card-title page-title">Настройки</h2>
-          <p class="card-description">
-            Хранятся в этом браузере и применяются сразу. К прогрессу не относятся.
-          </p>
+          <p class="card-description">Настройки хранятся в этом браузере и применяются сразу.</p>
         </div>
         <div class="card-content">
           <h3 class="group">Доска со схемами</h3>
@@ -63,10 +62,14 @@ import {
           }
         </div>
       </div>
+      <app-progress-panel />
     </div>
   `,
   styles: `
     .settings {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
       max-width: 44rem;
     }
     .page-title {

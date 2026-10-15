@@ -1,13 +1,12 @@
 import { Component, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { progressVersion } from '../../nav/progress';
-import { ProgressPanel } from '../../progress/progress-panel';
 import { CHAPTERS, PARTS, chapterProgress } from './chapters';
 
 /** Главная: все главы курса со сводкой прогресса */
 @Component({
   selector: 'app-chapters-page',
-  imports: [RouterLink, ProgressPanel],
+  imports: [RouterLink],
   templateUrl: './chapters.page.html',
   styleUrl: './chapters.page.css',
 })
