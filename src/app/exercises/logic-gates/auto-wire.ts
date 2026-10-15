@@ -2,7 +2,7 @@ import { GateInstance, PinRef, Point, Wire, createsCycle, pinPos, samePin } from
 import { gatePinsOf } from './gate-shapes';
 
 /** На каком расстоянии (в единицах доски) контакты считаются «близкими» */
-export const AUTO_WIRE_RADIUS = 56;
+export const AUTO_WIRE_RADIUS = 84;
 /** Насколько уже показанная связь «липнет»: более близкая пара должна выиграть хотя бы на столько */
 export const AUTO_WIRE_STICK = 6;
 
