@@ -400,7 +400,7 @@ export class CircuitLab {
         ? (this.gates().find((g) => g.id === moving) ?? null)
         : null
       : this.dropGate();
-    // появившаяся связь остаётся до отпускания элемента, как бы далеко его ни унесли
+    // появившаяся связь «залипает» и держится, пока её не перехватит более близкая пара контактов
     const wires = gate ? this.autoWiresFor(gate, this.autoMemo) : [];
     this.autoMemo = wires;
     return wires;

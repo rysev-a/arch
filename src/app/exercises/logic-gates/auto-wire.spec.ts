@@ -65,6 +65,22 @@ describe('автоподстановка связей: что предлагае
     expect(far[0].to).toEqual({ node: 'g1', pin: 'in0' });
   });
 
+  it('лок мягкий: более близкая пара контактов перехватывает вход', () => {
+    const near = ask({ id: 'g1', type: 'NOT', x: 130, y: 66 }); // A → g1.in0
+    // у входа g1 (392, 314) оказался выход другого элемента (364, 314) — он ближе, чем далёкий тумблер A
+    const o: GateInstance = { id: 'o', type: 'NOT', x: 300, y: 290 };
+    const got = suggestWires({
+      gate: { id: 'g1', type: 'NOT', x: 400, y: 300 },
+      gates: [o],
+      wires: [],
+      inputYMap,
+      outputYMap,
+      stepsMode: false,
+      keep: near,
+    });
+    expect(got.map((w) => `${w.from.node}>${w.to.node}.${w.to.pin}`)).toEqual(['o>g1.in0']);
+  });
+
   it('удерживаемая связь пропадает, если вход уже занят другим проводом', () => {
     const near = ask({ id: 'g1', type: 'NOT', x: 130, y: 66 });
     const wires: Wire[] = [

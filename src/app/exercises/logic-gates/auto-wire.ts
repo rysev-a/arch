@@ -3,6 +3,8 @@ import { gatePinsOf } from './gate-shapes';
 
 /** На каком расстоянии (в единицах доски) контакты считаются «близкими» */
 export const AUTO_WIRE_RADIUS = 56;
+/** Насколько уже показанная связь «липнет»: более близкая пара должна выиграть хотя бы на столько */
+export const AUTO_WIRE_STICK = 6;
 
 export interface AutoWire {
   from: PinRef;
@@ -23,7 +25,7 @@ export interface AutoWireInput {
   /** в пошаговом режиме циклы разрешены — это суть защёлок */
   stepsMode: boolean;
   radius?: number;
-  /** связи, предложенные раньше в этом же перетаскивании: раз появившись, они остаются до отпускания */
+  /** связи, предложенные раньше в этом же перетаскивании: держатся, пока их не перехватит более близкая пара контактов */
   keep?: readonly AutoWire[];
 }
 
@@ -96,9 +98,12 @@ export function suggestWires(input: AutoWireInput): AutoWire[] {
   const out: PinRef = { node: gate.id, pin: 'out' };
   for (const to of sinks) if (!driven(to)) consider(out, to, to.node, 'out');
 
-  // сначала уже показанные связи, потом самые короткие; если два контакта тянутся к одному и тому
-  // же элементу, пунктир остаётся у ближнего, а второй контакт ищет себе другого соседа
-  cands.sort((p, q) => Number(q.held) - Number(p.held) || p.d - q.d);
+  // как магнит: берём самые короткие связи, а у уже показанной есть небольшой «залипающий» запас,
+  // чтобы пунктир не дрожал. Лок не вечен — более близкая пара контактов перехватывает контакт.
+  // Если два контакта тянутся к одному и тому же элементу, пунктир остаётся у ближнего,
+  // а второй контакт ищет себе другого соседа
+  const pull = (c: Candidate): number => c.d - (c.held ? AUTO_WIRE_STICK : 0);
+  cands.sort((p, q) => pull(p) - pull(q));
   const usedGroups = new Set<string>();
   const usedPins = new Set<string>();
   for (const c of cands) {
