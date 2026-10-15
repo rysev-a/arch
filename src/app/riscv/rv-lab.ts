@@ -17,6 +17,7 @@ import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
 import { ConfirmService } from '../ui/confirm.service';
 import { DashProgress } from '../ui/dash-progress';
+import { HintPopover } from '../ui/hint-popover';
 
 const STORAGE_KEY = 'processor-riscv-v1';
 const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
@@ -50,7 +51,7 @@ const hex8 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0'
  */
 @Component({
   selector: 'app-rv-lab',
-  imports: [GuidePlayer, DashProgress],
+  imports: [GuidePlayer, DashProgress, HintPopover],
   templateUrl: './rv-lab.html',
   styleUrl: './rv-lab.css',
 })

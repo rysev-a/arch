@@ -46,15 +46,6 @@
 }
 
 /* ---------- задание ---------- */
-.rv-hint {
-  margin: 0 0 0.75rem;
-  padding: 0.625rem 0.75rem;
-  border: 1px solid hsl(var(--border));
-  border-radius: calc(var(--radius) - 2px);
-  background: hsl(var(--accent) / 0.5);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
 
 /* ---------- редактор ---------- */
 .editor {

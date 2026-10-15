@@ -47,13 +47,7 @@
             >
               {{ gc.on() ? '■ Режим авто' : '▶ Режим авто' }}
             </button>
-            <button
-              type="button"
-              class="btn btn-outline btn-sm"
-              (click)="hintShown.set(!hintShown())"
-            >
-              {{ hintShown() ? 'Скрыть подсказку' : 'Подсказка' }}
-            </button>
+            <app-hint-popover [(open)]="hintShown" [text]="task().hint" />
             <button type="button" class="btn btn-outline btn-sm" (click)="showSolution()">
               Показать решение
             </button>
@@ -63,9 +57,6 @@
           </div>
         </div>
         <div class="card-content">
-          @if (hintShown()) {
-            <p class="asm-hint pop-in">{{ task().hint }}</p>
-          }
           <textarea
             class="editor"
             spellcheck="false"

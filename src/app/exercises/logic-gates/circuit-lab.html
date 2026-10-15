@@ -237,9 +237,7 @@
               </span>
             </div>
           }
-          <button type="button" class="btn btn-outline btn-sm" (click)="toggleHint()">
-            {{ hintShown() ? 'Скрыть подсказку' : 'Подсказка' }}
-          </button>
+          <app-hint-popover [(open)]="hintShown" [text]="exercise().hint" />
           @if (isBlocksMode()) {
             <ng-container [ngTemplateOutlet]="toolsTpl" />
           }
@@ -884,32 +882,6 @@
         </div>
       }
     </div>
-
-    <!-- ================= Подсказка ================= -->
-    @if (hintShown()) {
-      <div class="alert pop-in">
-        <span class="alert-icon">
-          <svg
-            viewBox="0 0 24 24"
-            width="20"
-            height="20"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path
-              d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.4 1 2.3h6c0-.9.4-1.8 1-2.3A7 7 0 0 0 12 2Z"
-            />
-          </svg>
-        </span>
-        <div>
-          <p class="alert-title">Подсказка</p>
-          <p class="alert-description">{{ exercise().hint }}</p>
-        </div>
-      </div>
-    }
   </section>
 
   <!-- призрак перетаскиваемого элемента -->

@@ -16,6 +16,7 @@ import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
 import { ConfirmService } from '../ui/confirm.service';
 import { DashProgress } from '../ui/dash-progress';
+import { HintPopover } from '../ui/hint-popover';
 
 const STORAGE_KEY = 'processor-asm-v1';
 const RUN_LIMIT = 100_000;
@@ -42,7 +43,7 @@ type Runner = Machine | GateMachine;
 
 @Component({
   selector: 'app-asm-lab',
-  imports: [CpuInspector, GuidePlayer, DashProgress],
+  imports: [CpuInspector, GuidePlayer, DashProgress, HintPopover],
   templateUrl: './asm-lab.html',
   styleUrl: './asm-lab.css',
 })

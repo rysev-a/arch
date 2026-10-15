@@ -7,56 +7,37 @@ describe('страница «Как работать с проектом»', () 
     const f = TestBed.createComponent(HelpPage);
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
-    const title = () => el.querySelector('.slide-title')!.textContent!.trim();
-    return { f, el, title };
+    const titles = () => [...el.querySelectorAll('.slide-title')].map((t) => t.textContent!.trim());
+    return { f, el, titles };
   }
 
-  it('сначала слайды про схемы; для каждого есть иллюстрация', () => {
-    const { f, el, title } = page();
-    expect(title()).toBe(SCHEME_SLIDES[0].title);
-    for (let i = 0; i < SCHEME_SLIDES.length; i++) {
-      (el.querySelectorAll('.dots .dot')[i] as HTMLElement).click();
-      f.detectChanges();
-      expect(title()).toBe(SCHEME_SLIDES[i].title);
-      expect(el.querySelector('.ill-wrap svg.ill'), SCHEME_SLIDES[i].id).not.toBeNull();
-    }
+  it('две вкладки; сначала все слайды про схемы — один под другим, с иллюстрациями', () => {
+    const { el, titles } = page();
+    expect([...el.querySelectorAll('.track-title')].map((t) => t.textContent!.trim())).toEqual([
+      'Со схемами',
+      'С ассемблером и процессорами',
+    ]);
+    expect(titles()).toEqual(SCHEME_SLIDES.map((s) => s.title));
+    expect(el.querySelectorAll('.stage svg.ill').length).toBe(SCHEME_SLIDES.length);
+    // слайд-шоу нет: ни кнопок листания, ни точек
+    expect(el.querySelector('.dots')).toBeNull();
+    expect(el.querySelector('.controls')).toBeNull();
   });
 
-  it('второй раздел — ассемблер и процессоры, иллюстрации на месте', () => {
-    const { f, el, title } = page();
+  it('вторая вкладка — ассемблер и процессоры, тоже все слайды сразу', () => {
+    const { f, el, titles } = page();
     (el.querySelectorAll('.track')[1] as HTMLElement).click();
     f.detectChanges();
-    expect(title()).toBe(ASM_SLIDES[0].title);
-    for (let i = 0; i < ASM_SLIDES.length; i++) {
-      (el.querySelectorAll('.dots .dot')[i] as HTMLElement).click();
-      f.detectChanges();
-      expect(title()).toBe(ASM_SLIDES[i].title);
-      expect(el.querySelector('.ill-wrap svg.ill'), ASM_SLIDES[i].id).not.toBeNull();
-    }
-  });
-
-  it('кнопки и стрелки на клавиатуре листают слайды', () => {
-    const { f, el, title } = page();
-    const buttons = el.querySelectorAll('.controls > button.btn-icon');
-    (buttons[1] as HTMLElement).click(); // вперёд
-    f.detectChanges();
-    expect(title()).toBe(SCHEME_SLIDES[1].title);
-    (el.querySelector('.stage') as HTMLElement).dispatchEvent(
-      new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }),
-    );
-    f.detectChanges();
-    expect(title()).toBe(SCHEME_SLIDES[0].title);
-    expect((buttons[0] as HTMLButtonElement).disabled).toBe(true);
+    expect(titles()).toEqual(ASM_SLIDES.map((s) => s.title));
+    expect(el.querySelectorAll('.stage svg.ill').length).toBe(ASM_SLIDES.length);
   });
 
   it('машинный код на слайде — настоящий вывод ассемблера', () => {
     const { f, el } = page();
     (el.querySelectorAll('.track')[1] as HTMLElement).click();
     f.detectChanges();
-    (el.querySelectorAll('.dots .dot')[1] as HTMLElement).click();
-    f.detectChanges();
-    const text = el.querySelector('.ill-wrap')!.textContent!;
-    expect(text).toContain('hlt');
-    expect(text).toMatch(/[0-9A-F]{4}/);
+    const bytes = el.querySelector('[data-slide="bytes"]')!.textContent!;
+    expect(bytes).toContain('hlt');
+    expect(bytes).toMatch(/[0-9A-F]{4}/);
   });
 });

@@ -101,6 +101,7 @@ import {
 import { ViewControls } from './view-controls';
 import { PixelLock } from '../../ui/pixel-lock';
 import { DashProgress } from '../../ui/dash-progress';
+import { HintPopover } from '../../ui/hint-popover';
 import { AutoWire, suggestWires } from './auto-wire';
 import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
@@ -160,6 +161,7 @@ const DROP_ID = 'auto-new';
     ViewControls,
     PixelLock,
     DashProgress,
+    HintPopover,
   ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
@@ -1046,10 +1048,6 @@ export class CircuitLab {
     this.lastStable = new Map();
     this.seqValues.set(new Map());
     this.refreshSample();
-  }
-
-  protected toggleHint(): void {
-    this.hintShown.update((v) => !v);
   }
 
   protected notify(text: string): void {
