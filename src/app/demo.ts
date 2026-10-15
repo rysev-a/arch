@@ -101,6 +101,7 @@ export function runDemoIfRequested(): void {
           'перезапустите `ng serve` и откройте адрес ещё раз.',
       );
     }
-    location.replace(ok ? '/cpu' : '/');
+    // адрес считаем от base href: сайт может жить не в корне домена (GitHub Pages)
+    location.replace(new URL(ok ? 'cpu' : '', document.baseURI).href);
   });
 }

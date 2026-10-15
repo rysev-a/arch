@@ -57,3 +57,15 @@ Angular CLI does not come with an end-to-end testing framework by default. You c
 ## Additional Resources
 
 For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+
+## Публикация на GitHub Pages
+
+Сайт собирается и выкладывается автоматически (`.github/workflows/deploy.yml`) при каждом пуше в `main`:
+тесты → `ng build --base-href /<репозиторий>/` → копия `index.html` в `404.html` (чтобы работали
+прямые ссылки вида `/mux/mux4`) → выкладка.
+
+Один раз нужно включить Pages: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+Адрес сайта: `https://<пользователь>.github.io/<репозиторий>/`. Для бесплатного аккаунта репозиторий
+должен быть публичным.
+
+Прогресс учеников хранится только в `localStorage` их браузера — сервера и учётных записей нет.

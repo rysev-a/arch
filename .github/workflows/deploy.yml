@@ -1,0 +1,59 @@
+# Публикация на GitHub Pages: сборка, тесты, выкладка.
+# Адрес сайта: https://<пользователь>.github.io/<репозиторий>/
+name: Публикация на GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# одновременно выкладывается только одна версия; свежая отменяет устаревшую
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Тесты
+        run: npx ng test --watch=false
+
+      # сайт живёт в подкаталоге /<репозиторий>/, поэтому base href задаём при сборке
+      - name: Сборка
+        run: npx ng build --base-href "/${{ github.event.repository.name }}/"
+
+      # GitHub Pages не знает про адреса вида /mux/mux4: на любой неизвестный адрес
+      # он отдаёт 404.html — подсовываем туда то же приложение, и оно само откроет нужную страницу
+      - name: Прямые ссылки (404.html) и .nojekyll
+        run: |
+          cp dist/processor/browser/index.html dist/processor/browser/404.html
+          touch dist/processor/browser/.nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/processor/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
