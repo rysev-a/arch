@@ -118,6 +118,8 @@ import { SuccessAlert } from './lab/success-alert';
 import { BoardTools } from './lab/board-tools';
 import { ExerciseCard } from './lab/exercise-card';
 import { CheckPanel } from './lab/check-panel';
+import { FullscreenTask } from './lab/fullscreen-task';
+import { GatePalette, PaletteGate } from './lab/gate-palette';
 import { HISTORY_MAX, Sample, buildWave } from './lab/wave';
 
 /** Сколько держится высокий уровень такта по кнопке «Такт» */
@@ -154,6 +156,8 @@ const DROP_ID = 'auto-new';
     BoardTools,
     ExerciseCard,
     CheckPanel,
+    FullscreenTask,
+    GatePalette,
   ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
@@ -238,6 +242,21 @@ export class CircuitLab {
     outputYs(this.activeOutputs()),
   );
   protected readonly paletteGates = computed<readonly GateType[]>(() => this.exercise().allowed);
+  /** квадратики панели элементов на доске */
+  protected readonly paletteItems = computed<PaletteGate[]>(() => {
+    this.solvedSet(); // открытие элемента зависит от прогресса
+    return this.paletteGates().map((type) => {
+      const locked = !this.isUnlocked(type);
+      return {
+        type,
+        locked,
+        title: locked
+          ? this.lockHint(type)
+          : `${type} — ${RU_NAMES[type]}${COMPOSITE_GATES[type] ? ' (составной)' : ''}`,
+        label: `Добавить элемент ${type}, ${RU_NAMES[type]}`,
+      };
+    });
+  });
   protected readonly isStepsMode = computed(() => this.exercise().mode === 'steps');
   protected readonly isBlocksMode = computed(() => this.exercise().kind === 'blocks');
   protected readonly iface = computed<BlockInterface>(() => interfaceOfExercise(this.exercise()));

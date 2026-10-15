@@ -172,82 +172,23 @@
         }
         @if (fullscreen() && !guideOn()) {
           <!-- неподвижное окошко с заданием и таблицей истинности: всегда перед глазами -->
-          <aside class="fs-task pop-in" [class.collapsed]="!fsTaskOpen()" aria-label="Задание">
-            <div class="fs-task-head">
-              <span class="fs-task-title">Задание</span>
-              <span
-                class="badge"
-                [class.badge-success]="solved()"
-                [class.badge-secondary]="!solved()"
-              >
-                @if (isStepsMode()) {
-                  Шаг {{ currentStepNo() }} / {{ totalSteps() }}
-                } @else {
-                  {{ matched() }} / {{ exercise().target.length }}
-                }
-              </span>
-              <button
-                type="button"
-                class="fs-task-toggle"
-                (click)="fsTaskOpen.set(!fsTaskOpen())"
-                [attr.aria-expanded]="fsTaskOpen()"
-                [title]="fsTaskOpen() ? 'Свернуть' : 'Развернуть'"
-              >
-                {{ fsTaskOpen() ? '—' : '＋' }}
-              </button>
-            </div>
-            @if (fsTaskOpen()) {
-              <p class="fs-task-text">{{ exercise().task }}</p>
-              @if (tableRows().length > 0) {
-                <div class="fs-task-table">
-                  <app-truth-table
-                    [rows]="tableRows()"
-                    [currentRow]="currentRow()"
-                    [inputIds]="activeInputs()"
-                    [labels]="labels()"
-                    [outputs]="activeOutputs()"
-                  />
-                </div>
-              }
-            }
-          </aside>
+          <app-fullscreen-task
+            [exercise]="exercise()"
+            [solved]="solved()"
+            [matched]="matched()"
+            [passedSteps]="passedSteps()"
+            [tableRows]="tableRows()"
+            [currentRow]="currentRow()"
+            [(open)]="fsTaskOpen"
+          />
         }
         <div class="card-content board-wrap">
           @if (!isBlocksMode() && paletteGates().length > 0) {
             <!-- панель элементов прямо на доске: квадратики-иконки -->
-            <div
-              class="board-palette"
-              role="toolbar"
-              aria-label="Элементы: перетащите на доску или кликните"
-            >
-              @for (t of paletteGates(); track t) {
-                <button
-                  type="button"
-                  class="pal-sq"
-                  [class.locked]="!isUnlocked(t)"
-                  [title]="
-                    isUnlocked(t)
-                      ? t + ' — ' + ruName(t) + (isComposite(t) ? ' (составной)' : '')
-                      : lockHint(t)
-                  "
-                  [attr.aria-label]="'Добавить элемент ' + t + ', ' + ruName(t)"
-                  (pointerdown)="startPlace($event, t)"
-                >
-                  <svg viewBox="-12 0 96 48" class="pal-svg" aria-hidden="true" overflow="visible">
-                    @if (extraArc(t) !== null) {
-                      <path class="gate-extra" [attr.d]="extraArc(t)" />
-                    }
-                    <path class="gate-body" [attr.d]="bodyPath(t)" />
-                    @if (bubbleCx(t) !== null) {
-                      <circle class="gate-bubble" [attr.cx]="bubbleCx(t)" cy="24" r="5" />
-                    }
-                  </svg>
-                  @if (!isUnlocked(t)) {
-                    <app-pixel-lock class="pal-lock" />
-                  }
-                </button>
-              }
-            </div>
+            <app-gate-palette
+              [gates]="paletteItems()"
+              (pick)="startPlace($event.event, $event.type)"
+            />
           }
           @if (!isBlocksMode()) {
             <div class="board-tools">

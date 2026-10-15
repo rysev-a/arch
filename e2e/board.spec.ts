@@ -166,3 +166,70 @@ test.describe('раскладка и высота доски', () => {
     expect(reset.height).toBeCloseTo(before.svg.height, 0);
   });
 });
+
+test.describe('оформление (стили не потерялись при переносе в компоненты)', () => {
+  test('панель элементов: квадратики 40×40 с рамкой и тенью; иконки доски 32×32', async ({
+    page,
+  }) => {
+    await openExercise(page, 'adders', 'half-adder');
+    const sq = page.locator('.pal-sq').first();
+    const box = (await sq.boundingBox())!;
+    expect(Math.round(box.width)).toBe(40);
+    expect(Math.round(box.height)).toBe(40);
+    const palette = await page.locator('.board-palette').evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { position: s.position, shadow: s.boxShadow, border: s.borderTopWidth };
+    });
+    expect(palette.position).toBe('absolute');
+    expect(palette.shadow).not.toBe('none');
+    expect(palette.border).toBe('1px');
+    const tool = (await page.locator('.tool-btn').first().boundingBox())!;
+    expect(Math.round(tool.width)).toBe(32);
+    // закрытый элемент — пунктирная рамка
+    const locked = await page
+      .locator('.pal-sq.locked')
+      .first()
+      .evaluate((el) => getComputedStyle(el).borderTopStyle);
+    expect(locked).toBe('dashed');
+  });
+
+  test('карточка упражнения: переключатель раскладки, стрелки, полоса прогресса', async ({
+    page,
+  }) => {
+    await openExercise(page, 'adders', 'half-adder');
+    const lay = (await page.locator('.lay-btn').first().boundingBox())!;
+    expect(Math.round(lay.width)).toBe(32);
+    const dash = page.locator('app-dash-progress .dash').first();
+    expect((await dash.boundingBox())!.height).toBeGreaterThan(10);
+    const arrow = page.locator('.exercise-nav > button').last();
+    expect((await arrow.boundingBox())!.width).toBeGreaterThan(30);
+  });
+
+  test('мигающая стрелка зелёная и анимируется', async ({ page }) => {
+    await seed(page, {
+      'processor-progress-v2-mux': { solved: [...Array(12).keys()], current: 0 },
+    });
+    await page.goto('/mux');
+    await page.locator('.ex-row').last().click();
+    const arrow = page.locator('.exercise-nav > button.nudge');
+    await expect(arrow).toBeVisible();
+    const st = await arrow.evaluate((el) => {
+      const s = getComputedStyle(el);
+      return { anim: s.animationName, color: s.color };
+    });
+    expect(st.anim).not.toBe('none');
+    expect(st.color).not.toBe('rgb(0, 0, 0)');
+  });
+
+  test('окошко «Задание» на весь экран оформлено: рамка, тень, справа внизу', async ({ page }) => {
+    await openExercise(page, 'adders', 'half-adder');
+    await page.locator('.fs-toggle').click();
+    const s = await page.locator('.fs-task').evaluate((el) => {
+      const c = getComputedStyle(el);
+      return { position: c.position, shadow: c.boxShadow, radius: c.borderTopLeftRadius };
+    });
+    expect(s.position).toBe('absolute');
+    expect(s.shadow).not.toBe('none');
+    expect(s.radius).not.toBe('0px');
+  });
+});
