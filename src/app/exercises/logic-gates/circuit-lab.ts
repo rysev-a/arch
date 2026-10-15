@@ -1385,6 +1385,7 @@ export class CircuitLab {
       inputYMap: this.inputYMap(),
       outputYMap: this.outputYMap(),
       stepsMode: this.isStepsMode(),
+      radius: this.settings.autoWireRadius(),
     });
   }
 

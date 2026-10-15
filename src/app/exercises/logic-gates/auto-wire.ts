@@ -1,8 +1,9 @@
+import { AUTO_WIRE_RADIUS_DEFAULT } from '../../settings/settings.service';
 import { GateInstance, PinRef, Point, Wire, createsCycle, pinPos, samePin } from './circuit.model';
 import { gatePinsOf } from './gate-shapes';
 
 /** На каком расстоянии (в единицах доски) контакты считаются «близкими» */
-export const AUTO_WIRE_RADIUS = 84;
+export const AUTO_WIRE_RADIUS = AUTO_WIRE_RADIUS_DEFAULT;
 /** Насколько уже показанная связь «липнет»: более близкая пара должна выиграть хотя бы на столько */
 export const AUTO_WIRE_STICK = 6;
 

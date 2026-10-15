@@ -1,11 +1,16 @@
 import { Component, inject } from '@angular/core';
-import { SettingsService } from '../../settings/settings.service';
+import { Slider } from '../../ui/slider';
 import { Switch } from '../../ui/switch';
+import {
+  AUTO_WIRE_RADIUS_MAX,
+  AUTO_WIRE_RADIUS_MIN,
+  SettingsService,
+} from '../../settings/settings.service';
 
 /** Страница настроек: переключатели в стиле shadcn */
 @Component({
   selector: 'app-settings-page',
-  imports: [Switch],
+  imports: [Switch, Slider],
   template: `
     <div class="settings">
       <div class="card">
@@ -33,6 +38,27 @@ import { Switch } from '../../ui/switch';
               (checkedChange)="settings.autoWire.set($event)"
             />
           </div>
+          @if (settings.autoWire()) {
+            <div class="sub pop-in">
+              <div class="sub-head">
+                <label class="name" for="auto-wire-radius">Радиус автоподстановки</label>
+                <span class="value">{{ settings.autoWireRadius() }}</span>
+              </div>
+              <p class="desc">
+                Насколько близко должны оказаться контакты, чтобы появился пунктир: чем правее
+                ползунок, тем дальше «достаёт» элемент. Значение — расстояние в единицах доски.
+              </p>
+              <app-slider
+                id="auto-wire-radius"
+                label="Радиус автоподстановки"
+                [min]="min"
+                [max]="max"
+                [step]="4"
+                [value]="settings.autoWireRadius()"
+                (valueChange)="settings.autoWireRadius.set($event)"
+              />
+            </div>
+          }
         </div>
       </div>
     </div>
@@ -64,6 +90,23 @@ import { Switch } from '../../ui/switch';
       font-size: 0.9375rem;
       font-weight: 600;
     }
+    .sub {
+      padding: 0.75rem 0 0.25rem 1rem;
+      border-top: 1px solid hsl(var(--border));
+    }
+    .sub-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+    }
+    .sub .desc {
+      margin-bottom: 0.75rem;
+    }
+    .value {
+      color: hsl(var(--muted-foreground));
+      font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+      font-size: 0.8125rem;
+    }
     .desc {
       margin: 0.25rem 0 0;
       color: hsl(var(--muted-foreground));
@@ -74,4 +117,6 @@ import { Switch } from '../../ui/switch';
 })
 export class SettingsPage {
   protected readonly settings = inject(SettingsService);
+  protected readonly min = AUTO_WIRE_RADIUS_MIN;
+  protected readonly max = AUTO_WIRE_RADIUS_MAX;
 }

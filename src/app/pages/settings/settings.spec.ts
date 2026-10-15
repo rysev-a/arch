@@ -18,11 +18,40 @@ describe('страница настроек', () => {
     TestBed.tick();
     expect(settings.autoWire()).toBe(true);
     expect(sw.getAttribute('aria-checked')).toBe('true');
-    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!)).toEqual({ autoWire: true });
+    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!)).toEqual({
+      autoWire: true,
+      autoWireRadius: 84,
+    });
   });
 
   it('сохранённая настройка восстанавливается', () => {
     localStorage.setItem('processor-settings-v1', JSON.stringify({ autoWire: true }));
     expect(TestBed.inject(SettingsService).autoWire()).toBe(true);
+  });
+
+  it('ползунок радиуса виден только при включённой автоподстановке и меняет радиус', () => {
+    const f = TestBed.createComponent(SettingsPage);
+    const settings = TestBed.inject(SettingsService);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    expect(el.querySelector('input[type="range"]')).toBeNull();
+
+    settings.autoWire.set(true);
+    f.detectChanges();
+    const range = el.querySelector('input[type="range"]') as HTMLInputElement;
+    expect(range).not.toBeNull();
+    expect(+range.value).toBe(84);
+
+    range.value = '120';
+    range.dispatchEvent(new Event('input'));
+    f.detectChanges();
+    TestBed.tick();
+    expect(settings.autoWireRadius()).toBe(120);
+    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!).autoWireRadius).toBe(120);
+  });
+
+  it('сохранённый радиус ограничивается допустимыми границами', () => {
+    localStorage.setItem('processor-settings-v1', JSON.stringify({ autoWireRadius: 5000 }));
+    expect(TestBed.inject(SettingsService).autoWireRadius()).toBe(160);
   });
 });

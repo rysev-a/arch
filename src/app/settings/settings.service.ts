@@ -2,8 +2,14 @@ import { Injectable, effect, signal } from '@angular/core';
 
 const KEY = 'processor-settings-v1';
 
+/** Границы и значение по умолчанию для радиуса автоподстановки (в единицах доски) */
+export const AUTO_WIRE_RADIUS_MIN = 24;
+export const AUTO_WIRE_RADIUS_MAX = 160;
+export const AUTO_WIRE_RADIUS_DEFAULT = 84;
+
 interface Saved {
   autoWire?: boolean;
+  autoWireRadius?: number;
 }
 
 /** Настройки учебника: хранятся в браузере, к прогрессу не относятся */
@@ -15,15 +21,23 @@ export class SettingsService {
    */
   readonly autoWire = signal(false);
 
+  /** Радиус автоподстановки: на каком расстоянии контакты считаются «близкими» */
+  readonly autoWireRadius = signal(AUTO_WIRE_RADIUS_DEFAULT);
+
   constructor() {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Saved | null;
       if (saved && typeof saved.autoWire === 'boolean') this.autoWire.set(saved.autoWire);
+      if (saved && typeof saved.autoWireRadius === 'number' && isFinite(saved.autoWireRadius)) {
+        this.autoWireRadius.set(
+          Math.min(AUTO_WIRE_RADIUS_MAX, Math.max(AUTO_WIRE_RADIUS_MIN, saved.autoWireRadius)),
+        );
+      }
     } catch {
       // нет сохранения — настройки по умолчанию
     }
     effect(() => {
-      const data: Saved = { autoWire: this.autoWire() };
+      const data: Saved = { autoWire: this.autoWire(), autoWireRadius: this.autoWireRadius() };
       try {
         localStorage.setItem(KEY, JSON.stringify(data));
       } catch {
