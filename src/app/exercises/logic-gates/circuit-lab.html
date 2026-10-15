@@ -94,10 +94,10 @@
                 <button
                   type="button"
                   class="btn btn-default btn-sm"
-                  (click)="tick()"
-                  [disabled]="ticking() || auto() || clockLevel() === 1"
+                  (click)="clock.tick()"
+                  [disabled]="clock.ticking() || clock.auto() || clockLevel() === 1"
                   [title]="
-                    clockLevel() === 1 && !ticking() && !auto()
+                    clockLevel() === 1 && !clock.ticking() && !clock.auto()
                       ? 'Сначала опустите CLK в 0'
                       : 'Один такт: CLK поднимается в 1 и опускается в 0'
                   "
@@ -107,26 +107,26 @@
                 <button
                   type="button"
                   class="btn btn-outline btn-sm"
-                  [class.running]="auto()"
-                  (click)="toggleAuto()"
-                  [disabled]="ticking()"
+                  [class.running]="clock.auto()"
+                  (click)="clock.toggleAuto()"
+                  [disabled]="clock.ticking()"
                   title="Автоматический генератор тактов"
                 >
-                  {{ auto() ? '⏸ Пауза' : '▶ Авто' }}
+                  {{ clock.auto() ? '⏸ Пауза' : '▶ Авто' }}
                 </button>
                 <select
                   class="btn btn-outline btn-sm rate"
-                  [value]="rate()"
-                  (change)="setRate(+$any($event.target).value)"
+                  [value]="clock.rate()"
+                  (change)="clock.setRate(+$any($event.target).value)"
                   aria-label="Частота генератора"
                   title="Частота генератора"
                 >
-                  @for (hz of rates; track hz) {
-                    <option [value]="hz" [selected]="hz === rate()">{{ hz }} Гц</option>
+                  @for (hz of clock.rates; track hz) {
+                    <option [value]="hz" [selected]="hz === clock.rate()">{{ hz }} Гц</option>
                   }
                 </select>
                 <span class="edges" title="Сколько фронтов (0 → 1) подано с начала упражнения">
-                  тактов: {{ edges() }}
+                  тактов: {{ clock.edges() }}
                 </span>
               </div>
             }
@@ -354,7 +354,7 @@
       [text]="step.text"
       [index]="guidePos()"
       [total]="guide()!.steps.length"
-      [busy]="ticking() || guideBusy()"
+      [busy]="clock.ticking() || guideBusy()"
       [solved]="solved()"
       [hasNextExercise]="nextExercise() !== null"
       [(open)]="guideCardOpen"

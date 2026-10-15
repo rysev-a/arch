@@ -67,7 +67,6 @@ import {
 import { Exercise } from './exercises';
 import { RU_NAMES } from './gate-shapes';
 import { SECTIONS, Section } from '../../sections/sections';
-import { touchProgress } from '../../nav/progress';
 import { GuideAction } from './guides';
 import { clampWorld } from './board-pan';
 import { PixelLock } from '../../ui/pixel-lock';
@@ -86,12 +85,10 @@ import { ExerciseCard } from './lab/exercise-card';
 import { CheckPanel } from './lab/check-panel';
 import { FullscreenTask } from './lab/fullscreen-task';
 import { PaletteGate } from './lab/gate-palette';
+import { ClockController } from './lab/clock-controller';
+import { gateLockHint, isGateUnlocked, loadProgress, saveProgress } from './lab/exercise-progress';
 import { HISTORY_MAX, Sample, buildWave } from './lab/wave';
 
-/** Сколько держится высокий уровень такта по кнопке «Такт» */
-const TICK_MS = 600;
-/** Допустимые частоты автогенератора, Гц (полный период = высокий + низкий уровень) */
-export const CLOCK_RATES = [0.5, 1, 2, 4] as const;
 /** Один уровень «погружения»: сама доска или блок внутри неё */
 interface Level {
   title: string;
@@ -259,20 +256,15 @@ export class CircuitLab {
     const id = this.clockId();
     return id ? this.inputState()[id] : 0;
   });
-  /** идёт импульс по кнопке «Такт» */
-  protected readonly ticking = signal(false);
-  /** работает автогенератор */
-  protected readonly auto = signal(false);
-  protected readonly rate = signal<number>(1);
-  protected readonly rates = CLOCK_RATES;
-  /** сколько раз «щёлкнул» такт (фронтов 0 → 1) с начала упражнения */
-  protected readonly edges = signal(0);
+  /** такт: импульс по кнопке и автогенератор */
+  protected readonly clock = new ClockController({
+    clockId: () => this.clockId(),
+    level: (id) => this.inputState()[id],
+    setLevel: (id, level) => this.setInput(id, level),
+  });
 
   protected readonly history = signal<Sample[]>([]);
   protected readonly wave = computed(() => buildWave(this.history(), this.exercise()));
-
-  private clockTimer: ReturnType<typeof setTimeout> | undefined;
-  private autoTimer: ReturnType<typeof setInterval> | undefined;
 
   /* ---------- интерактив ---------- */
   /** сдвиг доски блоков: она без границ, колесом мыши (или за пустое место) её можно двигать */
@@ -301,8 +293,7 @@ export class CircuitLab {
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
 
   private readonly cleanup = this.destroyRef.onDestroy(() => {
-    clearTimeout(this.clockTimer);
-    clearInterval(this.autoTimer);
+    this.clock.dispose();
     document.documentElement.classList.remove('board-fullscreen');
   });
 
@@ -351,7 +342,7 @@ export class CircuitLab {
     const section = this.section();
     const start = this.startExercise();
     const load = this.loadSaved();
-    const progress = this.loadProgress(section);
+    const progress = loadProgress(section);
     const wanted = start ? section.exercises.findIndex((e) => e.id === start) : -1;
     const index = wanted >= 0 ? wanted : progress.current;
     // адрес сменился на то упражнение, которое уже открыто (например, после «Дальше»
@@ -430,43 +421,8 @@ export class CircuitLab {
      Прогресс: хранение
      ============================================================ */
 
-  private storageKey(section: Section): string {
-    return `processor-progress-v2-${section.progressKey}`;
-  }
-
-  private loadProgress(section: Section): { solved: Set<number>; current: number } {
-    try {
-      const raw = localStorage.getItem(this.storageKey(section));
-      if (raw) {
-        const parsed = JSON.parse(raw) as { solved?: unknown; current?: unknown };
-        const max = section.exercises.length;
-        const solved = Array.isArray(parsed.solved)
-          ? new Set(
-              parsed.solved.filter((n): n is number => typeof n === 'number' && n >= 0 && n < max),
-            )
-          : new Set<number>();
-        const current =
-          typeof parsed.current === 'number' && parsed.current >= 0 && parsed.current < max
-            ? parsed.current
-            : 0;
-        return { solved, current };
-      }
-    } catch {
-      // нет сохранения — начинаем с нуля
-    }
-    return { solved: new Set<number>(), current: 0 };
-  }
-
   private persist(): void {
-    try {
-      localStorage.setItem(
-        this.storageKey(this.section()),
-        JSON.stringify({ solved: [...this.solvedSet()], current: this.currentIndex() }),
-      );
-    } catch {
-      // localStorage недоступен — прогресс просто не сохранится
-    }
-    touchProgress();
+    saveProgress(this.section(), this.solvedSet(), this.currentIndex());
   }
 
   /* ============================================================
@@ -521,7 +477,7 @@ export class CircuitLab {
   }
 
   private clearBoard(): void {
-    this.stopClock();
+    this.clock.stop();
     this.pan.set({ x: 0, y: 0 });
     this.gateBoard()?.resetView();
     this.inputState.set(zeroInputs());
@@ -534,7 +490,7 @@ export class CircuitLab {
     this.library.set(createLibrary(SECTIONS));
     this.hintShown.set(false);
     this.passedSteps.set(0);
-    this.edges.set(0);
+    this.clock.resetEdges();
     this.lastStable = new Map();
     this.seqValues.set(new Map());
     this.history.set([]);
@@ -728,66 +684,10 @@ export class CircuitLab {
 
   private setInput(id: InputId, level: Bit): void {
     if (this.inputState()[id] === level) return;
-    if (id === this.clockId() && level === 1) this.edges.update((n) => n + 1);
+    if (id === this.clockId() && level === 1) this.clock.countEdge();
     this.inputState.update((s) => ({ ...s, [id]: level }));
     this.touchValues();
     this.recordSample();
-  }
-
-  /* ============================================================
-     Такт: импульс по кнопке и автогенератор
-     ============================================================ */
-
-  /** один полный период: CLK = 1 на время TICK_MS, затем снова 0 */
-  protected tick(done?: () => void): boolean {
-    const id = this.clockId();
-    if (!id || this.ticking() || this.auto() || this.clockLevel() === 1) return false;
-    this.ticking.set(true);
-    this.setInput(id, 1);
-    this.clockTimer = setTimeout(() => {
-      this.setInput(id, 0);
-      this.ticking.set(false);
-      done?.();
-    }, TICK_MS);
-    return true;
-  }
-
-  protected toggleAuto(): void {
-    if (this.auto()) {
-      this.stopClock();
-      return;
-    }
-    const id = this.clockId();
-    if (!id || this.ticking()) return;
-    this.auto.set(true);
-    this.startAutoTimer();
-  }
-
-  protected setRate(hz: number): void {
-    this.rate.set(hz);
-    if (this.auto()) this.startAutoTimer();
-  }
-
-  private startAutoTimer(): void {
-    clearInterval(this.autoTimer);
-    const id = this.clockId();
-    if (!id) return;
-    // половина периода — высокий уровень, половина — низкий
-    this.autoTimer = setInterval(
-      () => this.setInput(id, (this.inputState()[id] ^ 1) as Bit),
-      500 / this.rate(),
-    );
-  }
-
-  /** остановить автогенератор и импульс; такт возвращается в 0 */
-  protected stopClock(): void {
-    clearTimeout(this.clockTimer);
-    clearInterval(this.autoTimer);
-    const wasRunning = this.auto() || this.ticking();
-    this.auto.set(false);
-    this.ticking.set(false);
-    const id = this.clockId();
-    if (wasRunning && id && this.inputState()[id] === 1) this.setInput(id, 0);
   }
 
   /* ============================================================
@@ -827,7 +727,7 @@ export class CircuitLab {
   }
 
   protected reset(): void {
-    this.stopClock();
+    this.clock.stop();
     this.gates.set([]);
     this.wires.set([]);
     this.instances.set([]);
@@ -928,7 +828,7 @@ export class CircuitLab {
   }
 
   private beginGuide(): void {
-    this.stopClock();
+    this.clock.stop();
     this.clearBoard();
     this.guideGates = new Map();
     this.guideFocus.set(new Set());
@@ -975,7 +875,12 @@ export class CircuitLab {
 
   protected guideNext(): void {
     const guide = this.guide();
-    if (!guide || this.ticking() || this.guideBusy() || this.guidePos() >= guide.steps.length - 1)
+    if (
+      !guide ||
+      this.clock.ticking() ||
+      this.guideBusy() ||
+      this.guidePos() >= guide.steps.length - 1
+    )
       return;
     const pos = this.guidePos() + 1;
     this.guidePos.set(pos);
@@ -993,7 +898,7 @@ export class CircuitLab {
     if (!guide) return;
     const n = Math.max(0, Math.min(target, guide.steps.length - 1));
     if (n === this.guidePos() && this.guideOn()) return;
-    this.stopClock();
+    this.clock.stop();
     this.clearBoard();
     this.guideGates = new Map();
     let passed = -1;
@@ -1027,7 +932,7 @@ export class CircuitLab {
         this.guideBusy.set(false);
         return;
       }
-      if (!this.tick(next)) this.guideBusy.set(false);
+      if (!this.clock.tick(next)) this.guideBusy.set(false);
     };
     next();
   }
@@ -1084,41 +989,8 @@ export class CircuitLab {
      Хелперы для шаблона
      ============================================================ */
 
-  /** составной ли элемент (для бейджа в палитре) */
-  protected isComposite(type: GateType): boolean {
-    return COMPOSITE_GATES[type] !== undefined;
-  }
-
-  /** составные элементы открываются после сборки их вручную */
-  protected isUnlocked(type: GateType): boolean {
-    const req = COMPOSITE_GATES[type];
-    if (!req) return true;
-    return this.hasSolved(req.sectionSlug, req.exerciseId);
-  }
-
-  /** подсказка для закрытого элемента: что нужно собрать */
-  protected lockHint(type: GateType): string {
-    const req = COMPOSITE_GATES[type];
-    if (!req) return '';
-    const section = SECTIONS.find((s) => s.slug === req.sectionSlug);
-    const ex = section?.exercises.find((e) => e.id === req.exerciseId);
-    return `Соберите «${ex?.title ?? req.exerciseId}» в разделе «${section?.title ?? req.sectionSlug}»`;
-  }
-
-  private hasSolved(slug: string, exerciseId: string): boolean {
-    try {
-      const section = SECTIONS.find((s) => s.slug === slug);
-      if (!section) return false;
-      const idx = section.exercises.findIndex((e) => e.id === exerciseId);
-      if (idx < 0) return false;
-      const raw = localStorage.getItem(this.storageKey(section));
-      if (!raw) return false;
-      const parsed = JSON.parse(raw) as { solved?: unknown };
-      return Array.isArray(parsed.solved) && parsed.solved.includes(idx);
-    } catch {
-      return false;
-    }
-  }
+  protected isUnlocked = isGateUnlocked;
+  protected lockHint = gateLockHint;
 
   protected labels(): readonly string[] {
     const ex = this.exercise();
