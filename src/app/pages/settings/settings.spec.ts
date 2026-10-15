@@ -64,4 +64,24 @@ describe('страница настроек', () => {
     expect(text).toContain('Загрузить из файла');
     expect(text).toContain('Сбросить прогресс');
   });
+
+  it('«Всегда показывать анимации» включает класс force-motion на странице и сохраняется', () => {
+    const f = TestBed.createComponent(SettingsPage);
+    f.detectChanges();
+    const settings = TestBed.inject(SettingsService);
+    const sw = (f.nativeElement as HTMLElement).querySelector(
+      '#force-motion [role="switch"]',
+    ) as HTMLElement;
+    expect(settings.forceMotion()).toBe(false);
+    expect(document.documentElement.classList.contains('force-motion')).toBe(false);
+
+    sw.click();
+    f.detectChanges();
+    TestBed.tick();
+    expect(settings.forceMotion()).toBe(true);
+    expect(document.documentElement.classList.contains('force-motion')).toBe(true);
+    expect(JSON.parse(localStorage.getItem('processor-settings-v1')!).forceMotion).toBe(true);
+
+    document.documentElement.classList.remove('force-motion');
+  });
 });

@@ -21,6 +21,7 @@ interface Saved {
   autoWire?: boolean;
   autoWireRadius?: number;
   tableLayout?: TableLayout;
+  forceMotion?: boolean;
   boardHeight?: number | null;
 }
 
@@ -36,6 +37,12 @@ export class SettingsService {
   /** Радиус автоподстановки: на каком расстоянии контакты считаются «близкими» */
   readonly autoWireRadius = signal(AUTO_WIRE_RADIUS_DEFAULT);
 
+  /**
+   * Показывать анимации, даже если в системе включено «уменьшить движение»: по умолчанию сайт
+   * уважает системную настройку и гасит все анимации и переходы
+   */
+  readonly forceMotion = signal(false);
+
   /** Где таблица истинности: под доской или справа от неё */
   readonly tableLayout = signal<TableLayout>('right');
 
@@ -46,6 +53,7 @@ export class SettingsService {
     try {
       const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null') as Saved | null;
       if (saved && typeof saved.autoWire === 'boolean') this.autoWire.set(saved.autoWire);
+      if (saved?.forceMotion === true) this.forceMotion.set(true);
       if (saved?.tableLayout === 'bottom' || saved?.tableLayout === 'right') {
         this.tableLayout.set(saved.tableLayout);
       }
@@ -63,10 +71,14 @@ export class SettingsService {
       // нет сохранения — настройки по умолчанию
     }
     effect(() => {
+      document.documentElement.classList.toggle('force-motion', this.forceMotion());
+    });
+    effect(() => {
       const data: Saved = {
         autoWire: this.autoWire(),
         autoWireRadius: this.autoWireRadius(),
         tableLayout: this.tableLayout(),
+        forceMotion: this.forceMotion(),
         boardHeight: this.boardHeight(),
       };
       try {

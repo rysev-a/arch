@@ -5,6 +5,7 @@ import { runDemoIfRequested } from './demo';
 import { SideNav } from './nav/side-nav';
 import { ConfirmDialog } from './ui/confirm-dialog';
 import { ConfirmService } from './ui/confirm.service';
+import { SettingsService } from './settings/settings.service';
 
 @Component({
   selector: 'app-root',
@@ -22,6 +23,8 @@ export class App {
   protected readonly theme = signal<'light' | 'dark'>(this.initialTheme());
 
   private readonly dialogs = inject(ConfirmService);
+  /** настройки применяются с самого запуска (например, «всегда показывать анимации») */
+  private readonly settings = inject(SettingsService);
 
   constructor() {
     runDemoIfRequested((title, text) => this.dialogs.notify(title, text));

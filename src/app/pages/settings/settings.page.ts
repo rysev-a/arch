@@ -60,6 +60,28 @@ import {
               />
             </div>
           }
+
+          <h3 class="group second">Анимации</h3>
+          <div class="row">
+            <div class="text">
+              <label class="name" for="force-motion">Всегда показывать анимации</label>
+              <p class="desc">
+                Если в системе включено «Уменьшить движение» (macOS: Системные настройки →
+                Универсальный доступ → Дисплей), сайт по умолчанию гасит все анимации: бегущие
+                провода, мигающую стрелку, слайды справки. Включите, чтобы они работали, как
+                задумано.
+                @if (systemReduced) {
+                  Сейчас в вашей системе «уменьшить движение» включено.
+                }
+              </p>
+            </div>
+            <app-switch
+              id="force-motion"
+              label="Всегда показывать анимации"
+              [checked]="settings.forceMotion()"
+              (checkedChange)="settings.forceMotion.set($event)"
+            />
+          </div>
         </div>
       </div>
       <app-progress-panel />
@@ -82,6 +104,9 @@ import {
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
+    }
+    .group.second {
+      margin-top: 1rem;
     }
     .row {
       display: flex;
@@ -123,6 +148,14 @@ import {
 export class SettingsPage {
   protected readonly settings = inject(SettingsService);
   protected readonly factor = String(AUTO_WIRE_RADIUS_FACTOR).replace('.', ',');
+  /** в системе включено «уменьшить движение» */
+  protected readonly systemReduced = (() => {
+    try {
+      return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch {
+      return false;
+    }
+  })();
   protected readonly min = AUTO_WIRE_RADIUS_MIN;
   protected readonly max = AUTO_WIRE_RADIUS_MAX;
 }

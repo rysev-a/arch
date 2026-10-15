@@ -351,11 +351,12 @@ html.board-fullscreen {
   animation-duration: 0.18s;
 }
 
-/* кто просит поменьше движения — получает мгновенные переходы */
+/* кто просит поменьше движения — получает мгновенные переходы; в настройках это можно отключить
+   (html.force-motion), потому что бегущие провода и мигающие подсказки — часть учебника */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  html:not(.force-motion) *,
+  html:not(.force-motion) *::before,
+  html:not(.force-motion) *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
