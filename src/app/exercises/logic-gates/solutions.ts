@@ -23,7 +23,7 @@ export const SIMPLE_SOLUTIONS: Solutions = {
   nor: { net: { o: ['OR', 'A', 'B'], y: ['NOT', 'o'] }, outs: { Y: 'y' } },
   nand: { net: { a: ['AND', 'A', 'B'], y: ['NOT', 'a'] }, outs: { Y: 'y' } },
   enable: { net: { y: ['AND', 'D', 'E'] }, outs: { Y: 'y' } },
-  inhibit: { net: { nx: ['NOT', 'X'], y: ['AND', 'A', 'nx'] }, outs: { Y: 'y' } },
+  inhibit: { net: { nb: ['NOT', 'B'], y: ['AND', 'A', 'nb'] }, outs: { Y: 'y' } },
   'dont-care': { net: { n: ['NOT', 'A'] }, outs: { Y: 'n' } },
   xor: {
     net: { o: ['OR', 'A', 'B'], a: ['AND', 'A', 'B'], na: ['NOT', 'a'], y: ['AND', 'o', 'na'] },

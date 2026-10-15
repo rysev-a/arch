@@ -91,7 +91,7 @@ function referenceSolution(id: string): Circuit {
       };
     }
 
-    // 8. Блокировка: Y = A·НЕ-X
+    // 8. Блокировка: Y = A·НЕ-B
     case 'inhibit': {
       const gNot = G('NOT');
       const gAnd = G('AND');
