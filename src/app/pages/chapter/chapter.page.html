@@ -22,7 +22,7 @@
               type="button"
               class="btn btn-outline btn-sm"
               (click)="markAll()"
-              title="Если вы уже знаете эту тему: все упражнения главы будут считаться решёнными"
+              [title]="markHint"
             >
               Отметить решённым
             </button>

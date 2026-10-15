@@ -1,27 +1,13 @@
 import { touchProgress } from '../nav/progress';
 import { Chapter } from '../pages/chapters/chapters';
-import { ConfirmService } from '../ui/confirm.service';
 
-/** Вопрос перед массовой отметкой: иначе как сбросом прогресса её не отменить */
-export function confirmMarkChapter(
-  dialogs: ConfirmService,
-  chapterTitle: string,
-  count: number,
-): Promise<boolean> {
-  return dialogs.ask({
-    title: 'Отметить главу решённой?',
-    description:
-      `Все упражнения главы «${chapterTitle}» (${count}) будут считаться решёнными. ` +
-      'Это для тех, кто уже знает материал: счётчики и статусы станут «решено». ' +
-      'Отменить можно только сбросом прогресса.',
-    confirmText: 'Отметить решённым',
-    cancelText: 'Отмена',
-  });
-}
+/** Подсказка у кнопки «Отметить решённым» */
+export const MARK_HINT =
+  'Для тех, кто решает курс заново и потерял прогресс: все упражнения главы сразу станут решёнными';
 
 /**
  * Отметить решёнными все упражнения главы — прямо в хранилище (когда страница главы открыта,
- * лабораторий с их собственным состоянием нет). Текущее упражнение и ваши тексты программ остаются.
+ * лабораторий с их собственным состоянием нет); без вопросов — это для тех, кто решает заново. Текущее упражнение и ваши тексты программ остаются.
  */
 export function markChapterSolved(chapter: Chapter): void {
   try {

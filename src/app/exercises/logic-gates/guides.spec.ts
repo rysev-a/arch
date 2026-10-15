@@ -440,29 +440,10 @@ describe('режим авто: переходы и кнопки', () => {
     expect(el.textContent).toContain('нужны блоки из предыдущих упражнений');
   });
 
-  it('«Отметить решённым» в шапке засчитывает все упражнения главы и пропадает', async () => {
-    const { f, el, click } = lab('simple-circuits', 'and');
-    const total = SECTIONS[0].exercises.length;
-    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
-    expect(el.querySelectorAll('.dash.solved').length).toBe(0);
-    ask.mockResolvedValueOnce(false); // передумали — ничего не меняется
-    click('Отметить решённым');
-    await f.whenStable();
-    f.detectChanges();
-    expect(el.querySelectorAll('.dash.solved').length).toBe(0);
-    ask.mockResolvedValueOnce(true);
-    click('Отметить решённым');
-    await f.whenStable();
-    f.detectChanges();
-    expect(ask).toHaveBeenCalledTimes(2);
-    expect(ask.mock.calls[0][0].title).toContain('Отметить главу');
-    expect(el.querySelectorAll('.dash.solved').length).toBe(total);
+  it('в карточке упражнения кнопки «Отметить решённым» нет (она на страницах глав)', () => {
+    const { el } = lab('simple-circuits', 'and');
     expect(
       [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),
     ).toBe(false);
-    const saved = JSON.parse(localStorage.getItem('processor-progress-v2-simple')!) as {
-      solved: number[];
-    };
-    expect(saved.solved.length).toBe(total);
   });
 });

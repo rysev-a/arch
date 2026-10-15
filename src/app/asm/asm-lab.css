@@ -306,7 +306,7 @@
   height: 5rem;
 }
 
-/* шапка карточки задания: текст слева, «Отметить решённым» справа сверху */
+/* шапка карточки задания */
 .head-row {
   flex-direction: row;
   align-items: flex-start;
@@ -318,9 +318,6 @@
   flex-direction: column;
   gap: 0.25rem;
   min-width: 0;
-}
-.head-action {
-  flex: none;
 }
 @media (max-width: 640px) {
   .head-row {

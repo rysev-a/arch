@@ -8,16 +8,6 @@
         </h3>
         <p class="card-description">{{ task().text }}</p>
       </div>
-      @if (!chapterSolved()) {
-        <button
-          type="button"
-          class="btn btn-outline btn-sm mark-chapter head-action"
-          (click)="markChapterSolved()"
-          title="Если вы уже знаете эту тему: все задания главы будут считаться решёнными"
-        >
-          Отметить решённым
-        </button>
-      }
     </div>
     <div class="card-content">
       <app-dash-progress [items]="dashItems()" [current]="index()" (pick)="selectTask($event)" />

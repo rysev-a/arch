@@ -26,9 +26,24 @@
               </div>
               <div class="card-foot">
                 <span class="muted">{{ c.done }} из {{ c.total }} решено</span>
-                <a class="btn btn-outline btn-sm" [routerLink]="['/', c.chapter.slug, c.resumeId]">
-                  {{ c.started ? 'Продолжить' : 'Начать' }}
-                </a>
+                <span class="foot-buttons">
+                  @if (c.done < c.total) {
+                    <button
+                      type="button"
+                      class="btn btn-outline btn-sm"
+                      [title]="markHint"
+                      (click)="markAll(c.chapter)"
+                    >
+                      Отметить решённым
+                    </button>
+                  }
+                  <a
+                    class="btn btn-outline btn-sm"
+                    [routerLink]="['/', c.chapter.slug, c.resumeId]"
+                  >
+                    {{ c.started ? 'Продолжить' : 'Начать' }}
+                  </a>
+                </span>
               </div>
             </div>
           </article>

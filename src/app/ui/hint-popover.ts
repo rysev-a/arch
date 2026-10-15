@@ -1,8 +1,17 @@
 import { Component, ElementRef, HostListener, inject, input, model } from '@angular/core';
+import { RouterLink } from '@angular/router';
+
+/** Ссылка внутри подсказки: что случилось и куда перейти */
+export interface HintLink {
+  text: string;
+  label: string;
+  route: readonly string[];
+}
 
 /** Кнопка «Подсказка» и всплывающее окно рядом с ней: закрывается крестиком, Esc или щелчком мимо */
 @Component({
   selector: 'app-hint-popover',
+  imports: [RouterLink],
   template: `
     <button
       type="button"
@@ -56,6 +65,12 @@ import { Component, ElementRef, HostListener, inject, input, model } from '@angu
           </button>
         </div>
         <p class="pop-text">{{ text() }}</p>
+        @for (l of links(); track l.label) {
+          <div class="pop-link">
+            <p class="pop-text">{{ l.text }}</p>
+            <a class="link" [routerLink]="l.route" (click)="open.set(false)">{{ l.label }} →</a>
+          </div>
+        }
       </div>
     }
   `,
@@ -119,6 +134,27 @@ import { Component, ElementRef, HostListener, inject, input, model } from '@angu
     .pop-close:focus-visible {
       outline: 2px solid hsl(var(--ring));
     }
+    .pop-link {
+      margin-top: 0.625rem;
+      padding-top: 0.625rem;
+      border-top: 1px solid hsl(var(--border));
+    }
+    .link {
+      display: inline-block;
+      margin-top: 0.25rem;
+      color: hsl(var(--primary));
+      font-size: 0.8125rem;
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+    .link:hover {
+      text-decoration-thickness: 2px;
+    }
+    .link:focus-visible {
+      outline: 2px solid hsl(var(--ring));
+      outline-offset: 2px;
+    }
     .pop-text {
       margin: 0;
       font-size: 0.8125rem;
@@ -129,6 +165,8 @@ import { Component, ElementRef, HostListener, inject, input, model } from '@angu
 export class HintPopover {
   readonly open = model(false);
   readonly text = input.required<string>();
+  /** Ссылки на другие упражнения: например, где открыть закрытый элемент */
+  readonly links = input<readonly HintLink[]>([]);
 
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
 

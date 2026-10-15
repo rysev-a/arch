@@ -14,7 +14,6 @@ import { GuideSession } from '../guide/guide-session';
 import { CodeGuideController, CodeGuideHost, traceRun } from '../guide/code-guide';
 import { codeGuideFor } from '../guide/code-registry';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
-import { confirmMarkChapter } from '../progress/mark-solved';
 import { ConfirmService } from '../ui/confirm.service';
 import { DashProgress } from '../ui/dash-progress';
 import { HintPopover } from '../ui/hint-popover';
@@ -315,17 +314,6 @@ export class RvLab {
     this.machine()?.run(RUN_LIMIT);
     this.followMemory();
     this.version.update((n) => n + 1);
-  }
-
-  /** Все задания главы решены — кнопка «Отметить решённым» больше не нужна */
-  protected readonly chapterSolved = computed(() => this.solved().size >= this.tasks.length);
-
-  /** Кто уже знает материал, засчитывает всю главу разом */
-  protected async markChapterSolved(): Promise<void> {
-    const title = CHAPTERS.find((c) => c.slug === this.slug)?.title ?? '';
-    if (!(await confirmMarkChapter(this.dialogs, title, this.tasks.length))) return;
-    this.solved.set(new Set(this.tasks.map((t) => t.id)));
-    this.save();
   }
 
   protected reset(): void {

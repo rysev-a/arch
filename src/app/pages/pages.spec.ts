@@ -92,7 +92,7 @@ describe('страницы глав', () => {
     expect(chapterProgress(mux).resume).toBe(4);
   });
 
-  it('страница главы: «Отметить решённым» засчитывает всю главу (с подтверждением)', async () => {
+  it('страница главы: «Отметить решённым» засчитывает всю главу сразу, без вопросов', async () => {
     TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
     const asm = chapterBySlug('asm')!;
     localStorage.setItem(
@@ -104,15 +104,11 @@ describe('страницы глав', () => {
     const el = harness.routeNativeElement as HTMLElement;
     const btn = () =>
       [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
-    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(false);
+    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
+    expect(btn()!.title).toContain('потерял прогресс');
     btn()!.click();
-    await harness.fixture.whenStable();
     harness.detectChanges();
-    expect(el.textContent).toContain(`1 из ${asm.exercises.length} решено`);
-    ask.mockResolvedValue(true);
-    btn()!.click();
-    await harness.fixture.whenStable();
-    harness.detectChanges();
+    expect(ask).not.toHaveBeenCalled();
     expect(el.textContent).toContain(`${asm.exercises.length} из ${asm.exercises.length} решено`);
     expect(btn()).toBeUndefined();
     // свой код и текущее задание на месте
@@ -120,5 +116,28 @@ describe('страницы глав', () => {
     expect(saved.codes).toEqual({ upper: 'мой код' });
     expect(saved.current).toBe(3);
     expect(saved.solved.length).toBe(asm.exercises.length);
+  });
+
+  it('на главной у каждой главы есть «Отметить решённым» — без модального окна', async () => {
+    TestBed.configureTestingModule({ providers: [provideRouter(routes)] });
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/', ChaptersPage);
+    const el = harness.routeNativeElement as HTMLElement;
+    const buttons = () =>
+      [...el.querySelectorAll('.chapter-card button')].filter((b) =>
+        b.textContent!.includes('Отметить решённым'),
+      ) as HTMLButtonElement[];
+    expect(buttons().length).toBe(CHAPTERS.length);
+    const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
+    const simple = chapterBySlug('simple-circuits')!;
+    const idx = CHAPTERS.findIndex((c) => c.slug === 'simple-circuits');
+    buttons()[idx].click();
+    harness.detectChanges();
+    expect(ask).not.toHaveBeenCalled();
+    const card = el.querySelectorAll('.chapter-card')[idx] as HTMLElement;
+    expect(card.textContent).toContain(
+      `${simple.exercises.length} из ${simple.exercises.length} решено`,
+    );
+    expect(buttons().length).toBe(CHAPTERS.length - 1);
   });
 });

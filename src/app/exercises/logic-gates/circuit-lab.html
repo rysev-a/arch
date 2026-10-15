@@ -105,16 +105,6 @@
           <p class="card-description">{{ exercise().task }}</p>
         </div>
         <div class="exercise-nav">
-          @if (!chapterSolved()) {
-            <button
-              type="button"
-              class="btn btn-outline btn-sm mark-chapter"
-              (click)="markChapterSolved()"
-              title="Если вы уже знаете эту тему: все упражнения главы будут считаться решёнными"
-            >
-              Отметить решённым
-            </button>
-          }
           <button
             type="button"
             class="btn btn-outline btn-icon"
@@ -237,7 +227,7 @@
               </span>
             </div>
           }
-          <app-hint-popover [(open)]="hintShown" [text]="exercise().hint" />
+          <app-hint-popover [(open)]="hintShown" [text]="exercise().hint" [links]="hintLinks()" />
           @if (isBlocksMode()) {
             <ng-container [ngTemplateOutlet]="toolsTpl" />
           }

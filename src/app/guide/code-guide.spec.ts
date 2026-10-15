@@ -184,10 +184,10 @@ describe('режим авто для программ: в лаборатории
   });
 });
 
-describe('«Отметить решённым» для всей главы', () => {
+describe('страница задания не предлагает «Отметить решённым»', () => {
   beforeEach(() => localStorage.clear());
 
-  it('в лаборатории программ засчитываются все задания и кнопка пропадает', async () => {
+  it('в лаборатории программ такой кнопки нет — она живёт на страницах глав', () => {
     TestBed.configureTestingModule({
       providers: [
         {
@@ -203,16 +203,8 @@ describe('«Отметить решённым» для всей главы', () 
     const f = TestBed.createComponent(AsmLab);
     f.detectChanges();
     const el = f.nativeElement as HTMLElement;
-    const btn = () =>
-      [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
-    expect(btn()).toBeTruthy();
-    vi.spyOn(TestBed.inject(ConfirmService), 'ask').mockResolvedValue(true);
-    btn()!.click();
-    await f.whenStable();
-    f.detectChanges();
-    expect(btn()).toBeUndefined();
-    expect(el.querySelectorAll('.dash.solved').length).toBe(ASM_TASKS.length);
-    const saved = JSON.parse(localStorage.getItem('processor-asm-v1')!) as { solved: string[] };
-    expect(saved.solved.sort()).toEqual(ASM_TASKS.map((t) => t.id).sort());
+    expect(
+      [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),
+    ).toBe(false);
   });
 });

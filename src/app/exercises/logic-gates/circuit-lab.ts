@@ -101,13 +101,12 @@ import {
 import { ViewControls } from './view-controls';
 import { PixelLock } from '../../ui/pixel-lock';
 import { DashProgress } from '../../ui/dash-progress';
-import { HintPopover } from '../../ui/hint-popover';
+import { HintLink, HintPopover } from '../../ui/hint-popover';
 import { AutoWire, suggestWires } from './auto-wire';
 import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
-import { confirmMarkChapter } from '../../progress/mark-solved';
 import { ConfirmService } from '../../ui/confirm.service';
 import { GuidePlayer } from '../../guide/guide-player';
 
@@ -204,6 +203,30 @@ export class CircuitLab {
   protected readonly solvedSet = signal<Set<number>>(new Set());
 
   protected readonly exercises = computed<readonly Exercise[]>(() => this.section().exercises);
+  /** закрытые элементы упражнения → ссылки на упражнения, где их можно открыть */
+  protected readonly hintLinks = computed<HintLink[]>(() => {
+    this.hintShown(); // пересчёт при каждом открытии подсказки: прогресс мог измениться
+    this.solvedSet();
+    const groups = new Map<string, { types: GateType[]; slug: string; id: string }>();
+    for (const t of this.paletteGates()) {
+      const req = COMPOSITE_GATES[t];
+      if (!req || this.isUnlocked(t)) continue;
+      const key = `${req.sectionSlug}/${req.exerciseId}`;
+      const g = groups.get(key) ?? { types: [], slug: req.sectionSlug, id: req.exerciseId };
+      g.types.push(t);
+      groups.set(key, g);
+    }
+    return [...groups.values()].map((g) => {
+      const section = SECTIONS.find((s) => s.slug === g.slug);
+      const title = section?.exercises.find((e) => e.id === g.id)?.title ?? g.id;
+      const names = g.types.join(' и ');
+      return {
+        text: `Элемент ${names} пока закрыт: он откроется, когда вы соберёте «${title}» в разделе «${section?.title ?? g.slug}».`,
+        label: `Открыть упражнение «${title}»`,
+        route: ['/', g.slug, g.id],
+      };
+    });
+  });
   protected readonly dashItems = computed(() =>
     this.exercises().map((ex, i) => ({ title: ex.title, solved: this.solvedSet().has(i) })),
   );
@@ -586,19 +609,6 @@ export class CircuitLab {
      ============================================================ */
 
   /** Переход к упражнению — это переход по адресу /<глава>/<упражнение>; доску сменит sectionEffect */
-  /** Все упражнения главы решены — кнопка «Отметить решённым» больше не нужна */
-  protected readonly chapterSolved = computed(
-    () => this.solvedSet().size >= this.exercises().length,
-  );
-
-  /** Кто уже знает материал, засчитывает всю главу разом */
-  protected async markChapterSolved(): Promise<void> {
-    const section = this.section();
-    if (!(await confirmMarkChapter(this.dialogs, section.title, this.exercises().length))) return;
-    this.solvedSet.set(new Set(this.exercises().map((_, i) => i)));
-    this.persist();
-  }
-
   protected selectExercise(index: number): void {
     if (index === this.currentIndex()) return;
     const ex = this.exercises()[index];
@@ -659,6 +669,7 @@ export class CircuitLab {
   protected startPlace(event: PointerEvent, type: GateType): void {
     if (!this.isUnlocked(type)) {
       this.notify(`${this.lockHint(type)} — и элемент откроется`);
+      this.hintShown.set(true); // в подсказке есть ссылка на нужное упражнение
       return;
     }
     event.preventDefault();
