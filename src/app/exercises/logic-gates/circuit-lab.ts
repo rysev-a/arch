@@ -99,6 +99,8 @@ import {
   zoomAround,
 } from './board-pan';
 import { ViewControls } from './view-controls';
+import { AutoWire, suggestWires } from './auto-wire';
+import { SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
@@ -318,8 +320,12 @@ export class CircuitLab {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly settings = inject(SettingsService);
   private appliedSection: Section | null = null;
   private moveOffset: Point = { x: 0, y: 0 };
+  private moveFrom: Point = { x: 0, y: 0 };
+  /** элемент сдвинули заметно (а не просто щёлкнули по нему) */
+  private readonly movedFar = signal(false);
   private flashTimer: ReturnType<typeof setTimeout> | undefined;
 
   private readonly boardEl = viewChild<ElementRef<SVGSVGElement>>('board');
@@ -364,6 +370,37 @@ export class CircuitLab {
     const flat = this.expansion();
     return flat ? flat.circuit : { gates: this.gates(), wires: this.wires() };
   });
+
+  /** где окажется элемент, если отпустить палитру прямо сейчас (null — мышь не над доской) */
+  private readonly dropGate = computed<GateInstance | null>(() => {
+    const type = this.placing();
+    const cursor = this.cursorClient();
+    const board = this.boardEl();
+    if (!type || !cursor || !board) return null;
+    const r = board.nativeElement.getBoundingClientRect();
+    if (cursor.x < r.left || cursor.x > r.right || cursor.y < r.top || cursor.y > r.bottom) {
+      return null;
+    }
+    const at = this.toBoard(cursor.x, cursor.y);
+    const { x, y } = clampWorld({ x: at.x - GATE_W / 2, y: at.y - GATE_H / 2 }, GATE_W, GATE_H);
+    return { id: 'auto-new', type, x, y };
+  });
+
+  /** пунктирные провода автоподстановки для элемента, который ставят или двигают */
+  protected readonly autoWires = computed<AutoWire[]>(() => {
+    if (!this.settings.autoWire() || this.isBlocksMode()) return [];
+    const moving = this.movingId();
+    const gate = moving
+      ? this.movedFar()
+        ? (this.gates().find((g) => g.id === moving) ?? null)
+        : null
+      : this.dropGate();
+    return gate ? this.autoWiresFor(gate) : [];
+  });
+
+  protected readonly autoWirePaths = computed(() =>
+    this.autoWires().map((w) => wirePath(w.a, w.b)),
+  );
 
   protected readonly tableRows = computed<TableRow[]>(() => {
     const c = this.circuit();
@@ -615,6 +652,8 @@ export class CircuitLab {
     event.preventDefault();
     const p = this.toBoard(event.clientX, event.clientY);
     this.moveOffset = { x: p.x - gate.x, y: p.y - gate.y };
+    this.moveFrom = { x: gate.x, y: gate.y };
+    this.movedFar.set(false);
     this.movingId.set(gate.id);
   }
 
@@ -1018,6 +1057,9 @@ export class CircuitLab {
         GATE_H,
       );
       this.gates.update((list) => list.map((g) => (g.id === id ? { ...g, x, y } : g)));
+      if (!this.movedFar() && Math.hypot(x - this.moveFrom.x, y - this.moveFrom.y) > 6) {
+        this.movedFar.set(true);
+      }
       return;
     }
     if (this.pendingFrom()) {
@@ -1039,7 +1081,7 @@ export class CircuitLab {
       const el = event.target as Element | null;
       if (el && typeof el.closest === 'function') {
         if (el.closest('.board-svg')) {
-          this.place(placing, this.toBoard(event.clientX, event.clientY));
+          this.place(placing, this.toBoard(event.clientX, event.clientY), true);
         } else if (el.closest('.palette')) {
           this.place(placing, this.defaultSpot());
         }
@@ -1048,7 +1090,11 @@ export class CircuitLab {
     }
 
     if (this.movingId()) {
+      // поставили элемент на место — пунктирные провода становятся настоящими
+      const auto = this.autoWires();
       this.movingId.set(null);
+      this.movedFar.set(false);
+      if (auto.length > 0) this.addAutoWires(auto);
       return;
     }
 
@@ -1307,9 +1353,32 @@ export class CircuitLab {
      Хелперы для шаблона
      ============================================================ */
 
-  protected place(type: GateType, at: Point): void {
+  protected place(type: GateType, at: Point, autoWire = false): void {
     const { x, y } = clampWorld({ x: at.x - GATE_W / 2, y: at.y - GATE_H / 2 }, GATE_W, GATE_H);
-    this.gates.update((list) => [...list, { id: uid('g'), type, x, y }]);
+    const gate: GateInstance = { id: uid('g'), type, x, y };
+    const auto =
+      autoWire && this.settings.autoWire() && !this.isBlocksMode() ? this.autoWiresFor(gate) : [];
+    this.gates.update((list) => [...list, gate]);
+    if (auto.length > 0) this.addAutoWires(auto);
+    else this.afterEdit();
+  }
+
+  private autoWiresFor(gate: GateInstance): AutoWire[] {
+    return suggestWires({
+      gate,
+      gates: this.gates(),
+      wires: this.wires(),
+      inputYMap: this.inputYMap(),
+      outputYMap: this.outputYMap(),
+      stepsMode: this.isStepsMode(),
+    });
+  }
+
+  private addAutoWires(list: readonly AutoWire[]): void {
+    this.wires.update((all) => [
+      ...all,
+      ...list.map((w) => ({ id: uid('w'), from: w.from, to: w.to })),
+    ]);
     this.afterEdit();
   }
 

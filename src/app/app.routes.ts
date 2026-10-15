@@ -60,6 +60,11 @@ export const routes: Routes = [
     title: TITLE,
   },
   ...chapterRoutes,
+  {
+    path: 'settings',
+    loadComponent: () => import('./pages/settings/settings.page').then((m) => m.SettingsPage),
+    title: `Настройки — ${TITLE}`,
+  },
   // раздел «Мультиплексоры и защёлки» разделился на два
   { path: 'mux-latches', redirectTo: 'mux' },
   { path: '**', redirectTo: '' },

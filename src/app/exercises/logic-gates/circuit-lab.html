@@ -675,6 +675,11 @@
               </g>
             }
 
+            <!-- ============ Автоподстановка: возможные провода ============ -->
+            @for (d of autoWirePaths(); track $index) {
+              <path class="wire-auto" [attr.d]="d" />
+            }
+
             <!-- ================= Предпросмотр провода ================= -->
             @if (previewD(); as d) {
               <path class="wire-preview" [class.ok]="dropOk()" [attr.d]="d" />
