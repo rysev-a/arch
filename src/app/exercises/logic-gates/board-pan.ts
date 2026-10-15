@@ -64,3 +64,53 @@ export function listenMiddleButton(
     el.removeEventListener('auxclick', mouse, { capture: true });
   };
 }
+
+/* ============================================================
+   Масштаб
+   ============================================================ */
+
+export const ZOOM = { min: 0.3, max: 3, step: 1.25 } as const;
+
+export const clampZoom = (z: number): number => Math.min(ZOOM.max, Math.max(ZOOM.min, z));
+
+/**
+ * Изменить масштаб, не сдвигая точку под курсором. `anchor` — точка в пикселях
+ * от угла самой доски (без полей), `base` — пикселей экрана на единицу доски при масштабе 1.
+ */
+export function zoomAround(
+  state: { pan: Point; zoom: number },
+  factor: number,
+  anchor: Point,
+  base: number,
+): { pan: Point; zoom: number } {
+  const zoom = clampZoom(state.zoom * factor);
+  if (zoom === state.zoom || !(base > 0)) return state;
+  const wx = anchor.x / (base * state.zoom) + state.pan.x;
+  const wy = anchor.y / (base * state.zoom) + state.pan.y;
+  return {
+    zoom,
+    pan: {
+      x: Math.round(wx - anchor.x / (base * zoom)),
+      y: Math.round(wy - anchor.y / (base * zoom)),
+    },
+  };
+}
+
+/** Размер видимого окна доски: чем крупнее масштаб, тем меньше кусок «мира» */
+export const viewBoxOf = (pan: Point, zoom: number, w: number, h: number): string =>
+  [pan.x, pan.y, w / zoom, h / zoom].map((n) => Math.round(n * 100) / 100).join(' ');
+
+/** Ctrl (⌘) + колесо или щипок на тачпаде — масштаб; обычное колесо по-прежнему прокручивает страницу */
+export function listenZoomWheel(el: Element, onZoom: (event: WheelEvent) => void): () => void {
+  const handler = (e: Event) => {
+    const event = e as WheelEvent;
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    onZoom(event);
+  };
+  el.addEventListener('wheel', handler, { passive: false });
+  return () => el.removeEventListener('wheel', handler);
+}
+
+/** Коэффициент масштаба за один «тик» колеса: плавно и в обе стороны одинаково */
+export const wheelFactor = (event: WheelEvent): number => Math.exp(-event.deltaY * 0.0025);

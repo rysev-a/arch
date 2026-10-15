@@ -102,7 +102,8 @@
             </li>
             <li>Кнопка ▸ у порта раскрывает его поля — провод можно тянуть от отдельного поля.</li>
             <li>
-              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет.
+              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет; Ctrl
+              + колесо — масштаб.
             </li>
             <li>
               Кнопка с лупой на блоке показывает его внутренность — схему, которую вы собрали.
@@ -115,7 +116,8 @@
             <li>Клик по проводу удаляет его, крестик на элементе — удаляет элемент.</li>
             <li>Щёлкайте по входам, чтобы менять 0 и 1, и следите за таблицей или сценарием.</li>
             <li>
-              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет.
+              Доска без границ: зажмите колесо мыши (или тяните за пустое место) — она поедет; Ctrl
+              + колесо — масштаб.
             </li>
           </ol>
         }
@@ -442,21 +444,19 @@
             />
           }
         } @else {
-          @if (panned()) {
-            <button
-              type="button"
-              class="btn btn-outline btn-sm view-reset"
-              (click)="resetView()"
-              title="Вернуть доску на место: к входам и выходам"
-            >
-              ⌖ Вернуть вид
-            </button>
-          }
+          <app-view-controls
+            [zoom]="zoom()"
+            [changed]="viewChanged()"
+            (zoomIn)="zoomBy(ZOOM_STEP)"
+            (zoomOut)="zoomBy(1 / ZOOM_STEP)"
+            (resetZoom)="zoom.set(1)"
+            (reset)="resetView()"
+          />
           <svg
             #board
             class="board-svg"
             [class.panning]="panning()"
-            [attr.viewBox]="pan().x + ' ' + pan().y + ' ' + BOARD_W + ' ' + BOARD_H"
+            [attr.viewBox]="viewBox()"
             (pointerdown)="boardDown($event)"
             role="img"
             aria-label="Интерактивная доска с логическими элементами"
@@ -470,8 +470,8 @@
               class="board-bg"
               [attr.x]="pan().x"
               [attr.y]="pan().y"
-              [attr.width]="BOARD_W"
-              [attr.height]="BOARD_H"
+              [attr.width]="viewW()"
+              [attr.height]="viewH()"
               fill="url(#dots)"
             />
 

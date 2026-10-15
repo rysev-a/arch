@@ -12,7 +12,19 @@ import {
   viewChild,
 } from '@angular/core';
 import { NodeValue, Point, wirePath } from './circuit.model';
-import { PanDrag, clampWorld, dragPan, listenMiddleButton, startPan } from './board-pan';
+import {
+  PanDrag,
+  ZOOM,
+  clampWorld,
+  dragPan,
+  listenMiddleButton,
+  listenZoomWheel,
+  startPan,
+  viewBoxOf,
+  wheelFactor,
+  zoomAround,
+} from './board-pan';
+import { ViewControls } from './view-controls';
 import {
   BlockInstance,
   BlockInterface,
@@ -34,6 +46,7 @@ import {
   BLOCK_W,
   BoxLayout,
   PinRow,
+  SIDE_W,
   layoutBox,
   pinCenter,
   rowKey,
@@ -61,6 +74,7 @@ interface WireView {
  */
 @Component({
   selector: 'app-block-board',
+  imports: [ViewControls],
   templateUrl: './block-board.html',
   styleUrl: './block-board.css',
 })
@@ -79,6 +93,13 @@ export class BlockBoard {
   readonly height = input(BLOCKS_BOARD_H);
   /** Сдвиг доски: она без границ, колесом мыши (или за пустое место) её можно двигать */
   readonly pan = model<Point>({ x: 0, y: 0 });
+  /** Масштаб доски: 1 — как задумано, меньше — «отъехать», больше — «приблизить» */
+  readonly zoom = model(1);
+  /**
+   * Раздвинуть блоки друг от друга (для просмотра тесной схемы): координаты блоков умножаются на этот
+   * коэффициент, а доска становится шире и выше. 1 — как в решении.
+   */
+  readonly spread = input(1);
 
   /** Щелчок по биту входа упражнения: узел, который нужно переключить */
   readonly toggle = output<string>();
@@ -87,7 +108,31 @@ export class BlockBoard {
   /** Сообщение для ученика (почему провод не соединился) */
   readonly message = output<string>();
 
-  protected readonly W = BLOCKS_BOARD_W;
+  /** Ширина доски: при раздвигании блоков она растёт, чтобы колонка выходов не оказалась поверх блоков */
+  protected readonly W = computed(() => {
+    const k = this.spread();
+    if (k === 1) return BLOCKS_BOARD_W;
+    const right = Math.max(0, ...this.instances().map((i) => this.spreadX(i.x)));
+    return Math.max(BLOCKS_BOARD_W, Math.round(right + BLOCK_W + 30 + SIDE_W + 6));
+  });
+  protected readonly H = computed(() => {
+    if (this.spread() === 1) return this.height();
+    const bottom = Math.max(0, ...this.instances().map((i) => this.spreadY(i.y) + 290));
+    return Math.max(this.height(), Math.round(bottom));
+  });
+  protected readonly viewBox = computed(() =>
+    viewBoxOf(this.pan(), this.zoom(), this.W(), this.H()),
+  );
+  protected readonly viewW = computed(() => this.W() / this.zoom());
+  protected readonly viewH = computed(() => this.H() / this.zoom());
+  protected readonly ZOOM_STEP = ZOOM.step;
+
+  private spreadX(x: number): number {
+    return Math.round(SIDE_W + 18 + (x - (SIDE_W + 18)) * this.spread());
+  }
+  private spreadY(y: number): number {
+    return Math.round(20 + (y - 20) * this.spread());
+  }
   protected readonly BLOCK_W = BLOCK_W;
   protected readonly Math = Math;
 
@@ -100,15 +145,23 @@ export class BlockBoard {
    */
   private readonly moved = signal<Record<string, Point>>({});
   protected readonly viewChanged = computed(
-    () => this.pan().x !== 0 || this.pan().y !== 0 || Object.keys(this.moved()).length > 0,
+    () =>
+      this.pan().x !== 0 ||
+      this.pan().y !== 0 ||
+      this.zoom() !== 1 ||
+      Object.keys(this.moved()).length > 0,
   );
 
+  private lastInstances: readonly BlockInstance[] | null = null;
   private readonly resetOnNewScheme = effect(() => {
-    this.instances(); // другая схема (или другой блок) — раскладка начинается заново
+    const list = this.instances(); // другая схема (или другой блок) — раскладка начинается заново
     untracked(() => {
-      if (this.readonly()) {
+      const changed = this.lastInstances !== null && this.lastInstances !== list;
+      this.lastInstances = list;
+      if (changed && this.readonly()) {
         this.moved.set({});
         this.pan.set({ x: 0, y: 0 });
+        this.zoom.set(1);
       }
     });
   });
@@ -118,6 +171,15 @@ export class BlockBoard {
     const el = this.svg()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(
+      listenZoomWheel(el, (event) => {
+        const m = this.metrics();
+        this.applyZoom(wheelFactor(event), {
+          x: event.clientX - m.rect.left - m.offX,
+          y: event.clientY - m.rect.top - m.offY,
+        });
+      }),
+    );
   });
 
   protected readonly expanded = signal<ReadonlySet<string>>(new Set());
@@ -139,7 +201,7 @@ export class BlockBoard {
 
   protected readonly boxes = computed<BoxLayout[]>(() => {
     const open = this.expanded();
-    const { inBox, outBox } = sideBoxes(this.iface().ports, open, this.W);
+    const { inBox, outBox } = sideBoxes(this.iface().ports, open, this.W());
     const lib = this.library();
     const blocks = this.instances().map((inst) => {
       const def = lib.def(inst.blockId);
@@ -149,8 +211,8 @@ export class BlockBoard {
         def?.ports ?? [],
         open,
         {
-          x: this.moved()[inst.id]?.x ?? inst.x,
-          y: this.moved()[inst.id]?.y ?? inst.y,
+          x: this.moved()[inst.id]?.x ?? this.spreadX(inst.x),
+          y: this.moved()[inst.id]?.y ?? this.spreadY(inst.y),
           w: BLOCK_W,
         },
         'block',
@@ -368,7 +430,12 @@ export class BlockBoard {
         BLOCK_W,
         h,
       );
-      this.instances.update((list) => list.map((i) => (i.id === id ? { ...i, x, y } : i)));
+      if (this.readonly()) {
+        // просмотр: двигаем только на экране (в «раздвинутых» координатах), схема не меняется
+        this.moved.update((m) => ({ ...m, [id]: { x, y } }));
+      } else {
+        this.instances.update((list) => list.map((i) => (i.id === id ? { ...i, x, y } : i)));
+      }
       return;
     }
     if (this.pending()) this.cursor.set(this.toBoard(event.clientX, event.clientY));
@@ -394,23 +461,50 @@ export class BlockBoard {
     this.cursor.set(null);
   }
 
-  private toBoard(clientX: number, clientY: number): Point {
-    const el = this.svg()?.nativeElement;
-    if (!el) return { x: 0, y: 0 };
-    const rect = el.getBoundingClientRect();
+  private metrics(): { rect: DOMRect; base: number; offX: number; offY: number } {
+    const rect = this.svg()!.nativeElement.getBoundingClientRect();
     // доска вписана в контейнер с сохранением пропорций (в полноэкранном режиме есть поля)
-    const scale = Math.min(rect.width / this.W, rect.height / this.height());
-    const offsetX = (rect.width - this.W * scale) / 2;
-    const offsetY = (rect.height - this.height() * scale) / 2;
+    const base = Math.min(rect.width / this.W(), rect.height / this.H());
     return {
-      x: (clientX - rect.left - offsetX) / scale + this.pan().x,
-      y: (clientY - rect.top - offsetY) / scale + this.pan().y,
+      rect,
+      base,
+      offX: (rect.width - this.W() * base) / 2,
+      offY: (rect.height - this.H() * base) / 2,
+    };
+  }
+
+  private toBoard(clientX: number, clientY: number): Point {
+    if (!this.svg()) return { x: 0, y: 0 };
+    const m = this.metrics();
+    const scale = m.base * this.zoom();
+    return {
+      x: (clientX - m.rect.left - m.offX) / scale + this.pan().x,
+      y: (clientY - m.rect.top - m.offY) / scale + this.pan().y,
     };
   }
 
   private boardScale(): number {
-    const rect = this.svg()!.nativeElement.getBoundingClientRect();
-    return Math.min(rect.width / this.W, rect.height / this.height());
+    return this.metrics().base * this.zoom();
+  }
+
+  private applyZoom(factor: number, anchor: Point): void {
+    const next = zoomAround(
+      { pan: this.pan(), zoom: this.zoom() },
+      factor,
+      anchor,
+      this.metrics().base,
+    );
+    this.pan.set(next.pan);
+    this.zoom.set(next.zoom);
+  }
+
+  /** Кнопки «+» и «−»: масштаб относительно центра видимой доски */
+  protected zoomBy(factor: number): void {
+    const m = this.metrics();
+    this.applyZoom(factor, {
+      x: (m.rect.width - 2 * m.offX) / 2,
+      y: (m.rect.height - 2 * m.offY) / 2,
+    });
   }
 
   private beginPan(event: PointerEvent): void {
@@ -431,6 +525,7 @@ export class BlockBoard {
   /** Вернуть доску на место: сдвиг и (при просмотре) временную раскладку блоков */
   protected resetView(): void {
     this.pan.set({ x: 0, y: 0 });
+    this.zoom.set(1);
     this.moved.set({});
   }
 

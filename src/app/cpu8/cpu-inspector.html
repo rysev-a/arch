@@ -28,6 +28,7 @@
       [scope]="current().scope"
       [readonly]="true"
       [height]="boardHeight(sol)"
+      [spread]="spreadFor(sol)"
       (inspect)="into($event)"
     />
   } @else if (gateSolution(current().solution); as g) {

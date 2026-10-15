@@ -252,9 +252,3 @@
 .bb.panning .bb-bg {
   cursor: grabbing;
 }
-
-.view-reset {
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-}

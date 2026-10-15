@@ -888,9 +888,8 @@
   cursor: grabbing;
 }
 
-.view-reset {
-  position: absolute;
+/* кнопки масштаба — в углу самой доски (у карточки есть внутренний отступ) */
+.board-wrap > app-view-controls {
   top: 1.75rem;
   right: 1.75rem;
-  z-index: 2;
 }

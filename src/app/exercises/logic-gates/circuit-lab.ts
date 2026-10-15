@@ -83,7 +83,19 @@ import {
 import { SECTIONS, Section } from '../../sections/sections';
 import { touchProgress } from '../../nav/progress';
 import { GuideAction } from './guides';
-import { PanDrag, clampWorld, dragPan, listenMiddleButton, startPan } from './board-pan';
+import {
+  PanDrag,
+  ZOOM,
+  clampWorld,
+  dragPan,
+  listenMiddleButton,
+  listenZoomWheel,
+  startPan,
+  viewBoxOf,
+  wheelFactor,
+  zoomAround,
+} from './board-pan';
+import { ViewControls } from './view-controls';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
 import { nextInCourse } from '../../pages/chapters/chapters';
@@ -129,7 +141,7 @@ interface Level {
 
 @Component({
   selector: 'app-circuit-lab',
-  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet, GuidePlayer],
+  imports: [TruthTable, BlockBoard, CircuitView, NgTemplateOutlet, GuidePlayer, ViewControls],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
 })
@@ -265,7 +277,14 @@ export class CircuitLab {
   /** сдвиг доски: она без границ, колесом мыши (или за пустое место) её можно двигать */
   protected readonly pan = signal<Point>({ x: 0, y: 0 });
   protected readonly panning = signal(false);
-  protected readonly panned = computed(() => this.pan().x !== 0 || this.pan().y !== 0);
+  /** масштаб доски: 1 — как задумано, меньше — «отъехать», больше — «приблизить» */
+  protected readonly zoom = signal(1);
+  protected readonly viewChanged = computed(
+    () => this.pan().x !== 0 || this.pan().y !== 0 || this.zoom() !== 1,
+  );
+  protected readonly viewBox = computed(() => viewBoxOf(this.pan(), this.zoom(), BOARD_W, BOARD_H));
+  protected readonly viewW = computed(() => BOARD_W / this.zoom());
+  protected readonly viewH = computed(() => BOARD_H / this.zoom());
   private panDrag: PanDrag | null = null;
   protected readonly cursorClient = signal<Point | null>(null);
   protected readonly movingId = signal<string | null>(null);
@@ -302,6 +321,15 @@ export class CircuitLab {
     const el = this.boardEl()?.nativeElement;
     if (!el) return;
     onCleanup(listenMiddleButton(el, (event) => this.beginPan(event)));
+    onCleanup(
+      listenZoomWheel(el, (event) => {
+        const m = this.metrics();
+        this.applyZoom(wheelFactor(event), {
+          x: event.clientX - m.rect.left - m.offX,
+          y: event.clientY - m.rect.top - m.offY,
+        });
+      }),
+    );
   });
 
   private readonly cleanup = this.destroyRef.onDestroy(() => {
@@ -505,6 +533,7 @@ export class CircuitLab {
   private clearBoard(): void {
     this.stopClock();
     this.pan.set({ x: 0, y: 0 });
+    this.zoom.set(1);
     this.inputState.set(zeroInputs());
     this.gates.set([]);
     this.wires.set([]);
@@ -1241,10 +1270,44 @@ export class CircuitLab {
     return { x: 400, y: 100 + (n % 4) * 70 };
   }
 
-  private boardScale(): number {
+  /** Положение доски на экране: пикселей на единицу при масштабе 1 и поля от вписывания в контейнер */
+  private metrics(): { rect: DOMRect; base: number; offX: number; offY: number } {
     const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
-    return Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
+    // доска вписана в контейнер с сохранением пропорций: в полноэкранном режиме есть поля по краям
+    const base = Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
+    return {
+      rect,
+      base,
+      offX: (rect.width - BOARD_W * base) / 2,
+      offY: (rect.height - BOARD_H * base) / 2,
+    };
   }
+
+  private boardScale(): number {
+    return this.metrics().base * this.zoom();
+  }
+
+  private applyZoom(factor: number, anchor: Point): void {
+    const next = zoomAround(
+      { pan: this.pan(), zoom: this.zoom() },
+      factor,
+      anchor,
+      this.metrics().base,
+    );
+    this.pan.set(next.pan);
+    this.zoom.set(next.zoom);
+  }
+
+  /** Кнопки «+» и «−»: масштаб относительно центра видимой доски */
+  protected zoomBy(factor: number): void {
+    const m = this.metrics();
+    this.applyZoom(factor, {
+      x: (m.rect.width - 2 * m.offX) / 2,
+      y: (m.rect.height - 2 * m.offY) / 2,
+    });
+  }
+
+  protected readonly ZOOM_STEP = ZOOM.step;
 
   private beginPan(event: PointerEvent): void {
     this.panDrag = startPan(event, this.boardScale(), this.pan());
@@ -1263,17 +1326,15 @@ export class CircuitLab {
 
   protected resetView(): void {
     this.pan.set({ x: 0, y: 0 });
+    this.zoom.set(1);
   }
 
   private toBoard(clientX: number, clientY: number): Point {
-    const rect = this.boardEl()!.nativeElement.getBoundingClientRect();
-    // доска вписана в контейнер с сохранением пропорций: в полноэкранном режиме есть поля по краям
-    const scale = Math.min(rect.width / BOARD_W, rect.height / BOARD_H);
-    const offsetX = (rect.width - BOARD_W * scale) / 2;
-    const offsetY = (rect.height - BOARD_H * scale) / 2;
+    const m = this.metrics();
+    const scale = m.base * this.zoom();
     return {
-      x: (clientX - rect.left - offsetX) / scale + this.pan().x,
-      y: (clientY - rect.top - offsetY) / scale + this.pan().y,
+      x: (clientX - m.rect.left - m.offX) / scale + this.pan().x,
+      y: (clientY - m.rect.top - m.offY) / scale + this.pan().y,
     };
   }
 

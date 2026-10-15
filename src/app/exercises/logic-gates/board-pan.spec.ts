@@ -1,7 +1,9 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { BlockBoard } from './block-board';
+import { BlockDef, BlockLibrary } from './blocks';
 import { CircuitLab } from './circuit-lab';
-import { WORLD, clampWorld, dragPan, startPan } from './board-pan';
+import { WORLD, ZOOM, clampWorld, dragPan, startPan, viewBoxOf, zoomAround } from './board-pan';
 import { SECTIONS } from '../../sections/sections';
 
 const ev = (type: string, init: MouseEventInit): Event =>
@@ -41,6 +43,37 @@ describe('доска без границ: арифметика сдвига', ()
   });
 });
 
+describe('масштаб: арифметика', () => {
+  it('точка под курсором остаётся на месте при любом масштабе', () => {
+    const base = 1;
+    const anchor = { x: 300, y: 120 };
+    const state = { pan: { x: 40, y: 10 }, zoom: 1 };
+    const worldBefore = { x: anchor.x / (base * 1) + 40, y: anchor.y / (base * 1) + 10 };
+    for (const factor of [1.25, 2, 0.5]) {
+      const next = zoomAround(state, factor, anchor, base);
+      const worldAfter = {
+        x: anchor.x / (base * next.zoom) + next.pan.x,
+        y: anchor.y / (base * next.zoom) + next.pan.y,
+      };
+      expect(Math.abs(worldAfter.x - worldBefore.x)).toBeLessThan(1);
+      expect(Math.abs(worldAfter.y - worldBefore.y)).toBeLessThan(1);
+    }
+  });
+
+  it('масштаб ограничен, а при упоре в предел ничего не двигается', () => {
+    const top = zoomAround({ pan: { x: 5, y: 5 }, zoom: ZOOM.max }, 2, { x: 10, y: 10 }, 1);
+    expect(top).toEqual({ pan: { x: 5, y: 5 }, zoom: ZOOM.max });
+    const low = zoomAround({ pan: { x: 0, y: 0 }, zoom: 1 }, 0.001, { x: 0, y: 0 }, 1);
+    expect(low.zoom).toBe(ZOOM.min);
+  });
+
+  it('окно доски: чем больше масштаб, тем меньше видимый кусок', () => {
+    expect(viewBoxOf({ x: 10, y: 20 }, 1, 880, 440)).toBe('10 20 880 440');
+    expect(viewBoxOf({ x: 0, y: 0 }, 2, 880, 440)).toBe('0 0 440 220');
+    expect(viewBoxOf({ x: 0, y: 0 }, 0.5, 880, 440)).toBe('0 0 1760 880');
+  });
+});
+
 describe('доска без границ: в упражнении', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -66,9 +99,11 @@ describe('доска без границ: в упражнении', () => {
   it('колесо мыши двигает доску, «Вернуть вид» возвращает', () => {
     const { f, el, svg } = lab();
     expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
-    expect(
-      [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Вернуть вид')),
-    ).toBe(false);
+    const backBtn = () =>
+      el.querySelector(
+        'app-view-controls button[aria-label="Вернуть вид"]',
+      ) as HTMLButtonElement | null;
+    expect(backBtn()).toBeNull();
 
     svg.dispatchEvent(ev('pointerdown', { button: 1, clientX: 400, clientY: 200 }));
     document.dispatchEvent(ev('pointermove', { clientX: 340, clientY: 170 }));
@@ -79,10 +114,8 @@ describe('доска без границ: в упражнении', () => {
     f.detectChanges();
     expect(svg.classList.contains('panning')).toBe(false);
 
-    const back = [...el.querySelectorAll('button')].find((b) =>
-      b.textContent!.includes('Вернуть вид'),
-    )!;
-    back.click();
+    expect(backBtn()).not.toBeNull();
+    backBtn()!.click();
     f.detectChanges();
     expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
   });
@@ -118,5 +151,103 @@ describe('доска без границ: в упражнении', () => {
     f.detectChanges();
     const svg2 = (f.nativeElement as HTMLElement).querySelector('.board-svg')!;
     expect(svg2.getAttribute('viewBox')).toBe('0 0 880 440');
+  });
+
+  it('Ctrl + колесо и кнопки меняют масштаб; обычное колесо не трогает доску', () => {
+    const { f, el, svg } = lab();
+    // обычное колесо — это прокрутка страницы: масштаб не меняется
+    svg.dispatchEvent(new WheelEvent('wheel', { deltaY: -200, bubbles: true, cancelable: true }));
+    f.detectChanges();
+    expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+
+    const wheel = new WheelEvent('wheel', {
+      deltaY: -300,
+      ctrlKey: true,
+      clientX: 440,
+      clientY: 220,
+      bubbles: true,
+      cancelable: true,
+    });
+    svg.dispatchEvent(wheel);
+    f.detectChanges();
+    expect(wheel.defaultPrevented).toBe(true);
+    const zoomed = svg.getAttribute('viewBox')!.split(' ').map(Number);
+    expect(zoomed[2]).toBeLessThan(880); // приблизили — виден меньший кусок
+    expect(el.querySelector('app-view-controls')!.textContent).toMatch(/\d+%/);
+
+    const btn = (label: string) =>
+      el.querySelector(`app-view-controls button[aria-label="${label}"]`) as HTMLButtonElement;
+    for (let i = 0; i < 6; i++) btn('Уменьшить масштаб').click();
+    f.detectChanges();
+    expect(Number(svg.getAttribute('viewBox')!.split(' ')[2])).toBeGreaterThan(880);
+
+    btn('Вернуть вид').click();
+    f.detectChanges();
+    expect(svg.getAttribute('viewBox')).toBe('0 0 880 440');
+  });
+});
+
+describe('просмотр схемы: блоки раздвинуты и их можно переставлять', () => {
+  const def = { id: 'b', title: 'Блок', ports: [], hint: '' } as unknown as BlockDef;
+  const library = {
+    defs: new Map([['b', def]]),
+    def: () => def,
+    solution: () => undefined,
+    available: () => true,
+    lockHint: () => '',
+    lookup: () => undefined,
+  } as unknown as BlockLibrary;
+
+  function board(spread: number) {
+    const f = TestBed.createComponent(BlockBoard);
+    f.componentRef.setInput('iface', { inputs: [], outputs: [], ports: [] });
+    f.componentRef.setInput('library', library);
+    f.componentRef.setInput('readonly', true);
+    f.componentRef.setInput('spread', spread);
+    f.componentRef.setInput('instances', [
+      { id: 'a', blockId: 'b', x: 150, y: 20 },
+      { id: 'c', blockId: 'b', x: 346, y: 220 },
+    ]);
+    f.componentRef.setInput('busWires', []);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    const pos = (id: string) => {
+      const boxes = [...el.querySelectorAll('.bbox:not(.top)')];
+      return boxes[id === 'a' ? 0 : 1].getAttribute('transform');
+    };
+    return { f, el, pos, svg: el.querySelector('svg.bb') as SVGSVGElement };
+  }
+
+  it('без раздвигания всё как в решении', () => {
+    const { pos, svg } = board(1);
+    expect(pos('a')).toBe('translate(150 20)');
+    expect(pos('c')).toBe('translate(346 220)');
+    expect(svg.getAttribute('viewBox')!.split(' ').slice(2, 3)).toEqual(['880']);
+  });
+
+  it('раздвигание растягивает расстояния между блоками и расширяет доску', () => {
+    const { pos, svg } = board(2);
+    expect(pos('a')).toBe('translate(150 20)'); // первый блок остаётся на месте
+    expect(pos('c')).toBe('translate(542 420)'); // расстояния удвоились
+    expect(Number(svg.getAttribute('viewBox')!.split(' ')[2])).toBeGreaterThan(880);
+  });
+
+  it('блок можно перетащить (временно), «Вернуть вид» возвращает раскладку', () => {
+    const { f, el, pos, svg } = board(1);
+    svg.getBoundingClientRect = () =>
+      ({ left: 0, top: 0, width: 880, height: 560, right: 880, bottom: 560 }) as DOMRect;
+    const head = el.querySelectorAll('.bbox:not(.top) .bbox-head')[0] as Element;
+    head.dispatchEvent(ev('pointerdown', { button: 0, clientX: 200, clientY: 30 }));
+    document.dispatchEvent(ev('pointermove', { clientX: 300, clientY: 130 }));
+    document.dispatchEvent(ev('pointerup', {}));
+    f.detectChanges();
+    expect(pos('a')).toBe('translate(250 120)');
+    const back = el.querySelector(
+      'app-view-controls button[aria-label="Вернуть вид"]',
+    ) as HTMLButtonElement;
+    expect(back).not.toBeNull();
+    back.click();
+    f.detectChanges();
+    expect(pos('a')).toBe('translate(150 20)');
   });
 });

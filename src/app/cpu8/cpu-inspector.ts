@@ -108,6 +108,12 @@ export class CpuInspector {
     return Math.max(560, ...s.instances.map((i) => i.y + 290));
   }
 
+  /** Насколько раздвинуть блоки при просмотре: чем больше блоков, тем сильнее */
+  protected spreadFor(s: BlockSolution): number {
+    const n = s.instances.length;
+    return n > 8 ? 1.7 : n > 3 ? 1.4 : 1.2;
+  }
+
   protected into(id: string): void {
     this.path.update((p) => [...p, id]);
   }
