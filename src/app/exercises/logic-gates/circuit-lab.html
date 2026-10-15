@@ -174,10 +174,11 @@
           <button
             type="button"
             class="btn btn-outline btn-icon"
+            [class.nudge]="nudgeNext()"
             (click)="next()"
-            [disabled]="currentIndex() === exercises().length - 1"
-            title="Следующее упражнение"
-            aria-label="Следующее упражнение"
+            [disabled]="currentIndex() === exercises().length - 1 && !nudgeNext()"
+            [title]="nextTitle()"
+            [attr.aria-label]="nextTitle()"
           >
             <svg
               viewBox="0 0 24 24"
@@ -301,9 +302,9 @@
               }
               @if (solved()) {
                 <span class="fs-ok">Схема работает!</span>
-                @if (currentIndex() < exercises().length - 1) {
+                @if (currentIndex() < exercises().length - 1 || nudgeNext()) {
                   <button type="button" class="btn btn-default btn-sm" (click)="next()">
-                    Следующее →
+                    {{ nudgeNext() ? 'Следующий раздел →' : 'Следующее →' }}
                   </button>
                 }
               } @else if (isStepsMode() && exercise().steps?.[passedSteps()]; as step) {
@@ -886,9 +887,9 @@
           </p>
           <p class="alert-description">{{ exercise().success }}</p>
         </div>
-        @if (currentIndex() < exercises().length - 1) {
+        @if (currentIndex() < exercises().length - 1 || nudgeNext()) {
           <button type="button" class="btn btn-default btn-sm alert-action" (click)="next()">
-            Следующее
+            {{ nudgeNext() ? 'Следующий раздел' : 'Следующее' }}
             <svg
               viewBox="0 0 24 24"
               fill="none"

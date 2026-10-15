@@ -111,7 +111,7 @@ import {
 } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
 import { GuideSession } from '../../guide/guide-session';
-import { nextInCourse } from '../../pages/chapters/chapters';
+import { CHAPTERS, nextInCourse } from '../../pages/chapters/chapters';
 import { ConfirmService } from '../../ui/confirm.service';
 import { GuidePlayer } from '../../guide/guide-player';
 
@@ -533,7 +533,8 @@ export class CircuitLab {
     // clearBoard читает другие сигналы — подписываться на них эффект не должен
     untracked(() => {
       this.clearBoard();
-      if (load) this.restoreSaved();
+      // решённое упражнение открывается с сохранённой схемой (режим авто всё равно начнёт с чистой доски)
+      if (load || progress.solved.has(index)) this.restoreSaved();
       this.persist();
       this.appliedSection = section;
       if (load) {
@@ -546,10 +547,13 @@ export class CircuitLab {
     });
   });
 
-  /** Решённое блочное или вентильное упражнение запоминает свою схему — из неё потом строится блок */
+  /**
+   * Решённое упражнение запоминает свою схему: она вернётся на доску при следующем открытии,
+   * а если из упражнения строится блок, из неё потом собирается и он
+   */
   private readonly saveEffect = effect(() => {
     const ex = this.exercise();
-    if (!ex.block || !this.solved()) return;
+    if (!this.solved()) return;
     const sol: Solution = this.isBlocksMode()
       ? { instances: this.instances(), busWires: this.busWires() }
       : { gates: this.gates(), wires: this.wires() };
@@ -648,7 +652,38 @@ export class CircuitLab {
     void this.router.navigate(['/', this.section().slug, ex.id]);
   }
 
+  /** все упражнения раздела решены */
+  protected readonly chapterSolved = computed(
+    () => this.solvedSet().size >= this.exercises().length,
+  );
+
+  /** куда ведёт стрелка «вправо» с последнего упражнения решённого раздела: в начало следующего */
+  private readonly nextChapterTarget = computed(() => {
+    const list = this.exercises();
+    return nextInCourse(this.section().slug, list[list.length - 1].id);
+  });
+
+  /** раздел пройден, и мы на его последнем упражнении: стрелка мигает и ведёт в следующий раздел */
+  protected readonly nudgeNext = computed(
+    () =>
+      this.chapterSolved() &&
+      this.currentIndex() === this.exercises().length - 1 &&
+      this.nextChapterTarget() !== null,
+  );
+
+  protected readonly nextTitle = computed(() => {
+    const target = this.nudgeNext() ? this.nextChapterTarget() : null;
+    if (!target) return 'Следующее упражнение';
+    const title = CHAPTERS.find((c) => c.slug === target.slug)?.title ?? target.slug;
+    return `Раздел пройден! Дальше: «${title}»`;
+  });
+
   protected next(): void {
+    const target = this.nudgeNext() ? this.nextChapterTarget() : null;
+    if (target) {
+      void this.router.navigate(['/', target.slug, target.id]);
+      return;
+    }
     this.selectExercise(Math.min(this.currentIndex() + 1, this.exercises().length - 1));
   }
 

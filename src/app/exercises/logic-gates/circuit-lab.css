@@ -1099,3 +1099,42 @@
   color: hsl(var(--foreground));
   outline: none;
 }
+
+/* раздел пройден: стрелка «вправо» мигает и приглашает в следующий раздел */
+.nudge {
+  border-color: hsl(var(--success));
+  color: hsl(var(--success));
+  animation: nudge-pulse 1.4s ease-in-out infinite;
+}
+.nudge svg {
+  animation: nudge-arrow 1.4s ease-in-out infinite;
+}
+@keyframes nudge-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 hsl(var(--success) / 0.5);
+    background: hsl(var(--success) / 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px hsl(var(--success) / 0);
+    background: hsl(var(--success) / 0.22);
+  }
+}
+@keyframes nudge-arrow {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(2px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .nudge,
+  .nudge svg {
+    animation: none;
+  }
+  .nudge {
+    background: hsl(var(--success) / 0.18);
+  }
+}
