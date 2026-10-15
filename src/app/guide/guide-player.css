@@ -194,3 +194,19 @@
 .mono {
   font-family: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* в тёмной теме тень почти не видна — окна выделяем светлой каймой и бликом сверху */
+:host-context(html.dark) .explain,
+:host-context(html.dark) .bar {
+  border-color: hsl(0 0% 100% / 0.16);
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.05),
+    inset 0 1px 0 hsl(0 0% 100% / 0.1),
+    0 12px 32px rgb(0 0 0 / 0.45);
+}
+:host-context(html.dark) .explain {
+  background: hsl(240 5% 20%);
+}
+:host-context(html.dark) .bar {
+  background: hsl(240 5% 18%);
+}
