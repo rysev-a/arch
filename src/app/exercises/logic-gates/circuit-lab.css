@@ -21,6 +21,10 @@
   min-width: 0;
 }
 
+.exercise.solo {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 @media (max-width: 1000px) {
   .exercise {
     grid-template-columns: 1fr;
@@ -44,58 +48,6 @@
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
-}
-
-.stepper-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-}
-
-.step-chip {
-  display: grid;
-  place-items: center;
-  min-width: 2.1rem;
-  height: 2.1rem;
-  padding: 0 0.5rem;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--background));
-  color: hsl(var(--muted-foreground));
-  font-size: 0.8125rem;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-  transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
-}
-.step-chip svg {
-  width: 0.85rem;
-  height: 0.85rem;
-}
-.step-chip:hover {
-  border-color: hsl(var(--primary) / 0.5);
-  color: hsl(var(--foreground));
-}
-.step-chip:focus-visible {
-  outline: 2px solid hsl(var(--ring));
-  outline-offset: 2px;
-}
-.step-chip.current {
-  border-color: hsl(var(--primary));
-  color: hsl(var(--primary));
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
-}
-.step-chip.solved {
-  background: hsl(var(--success));
-  border-color: hsl(var(--success));
-  color: hsl(var(--success-foreground));
-}
-.step-chip.current.solved {
-  box-shadow: 0 0 0 3px hsl(var(--success) / 0.25);
 }
 
 /* ===================== Палитра ===================== */
@@ -289,6 +241,9 @@
 
 .board-wrap {
   position: relative;
+  /* отступы плавающих элементов от краёв доски (у карточки есть внутренний отступ) */
+  --bt: 1.25rem;
+  --br: 1.75rem;
 }
 
 .board-svg {
@@ -757,6 +712,7 @@
   padding-block: 0.625rem;
 }
 .board-card.fullscreen .board-wrap {
+  --bt: 1rem;
   flex: 1;
   min-height: 0;
   padding-top: 0.5rem;
@@ -788,29 +744,6 @@
   flex-shrink: 0;
   padding: 0 1.5rem 0.5rem;
   border-bottom: 1px solid hsl(var(--border));
-}
-.fs-palette {
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0;
-}
-.fs-palette .palette-item {
-  width: auto;
-  min-width: 0;
-  max-width: 15rem;
-  padding: 0.25rem 0.625rem;
-}
-.fs-palette .palette-svg {
-  width: 2.75rem;
-  height: auto;
-}
-.fs-palette .palette-sub {
-  font-size: 0.6875rem;
-}
-.fs-palette .palette-empty {
-  margin: 0;
 }
 .fs-status {
   display: flex;
@@ -867,8 +800,9 @@
 
 /* кнопки масштаба — в углу самой доски (у карточки есть внутренний отступ) */
 .board-wrap > app-view-controls {
-  top: 1.75rem;
-  right: 1.75rem;
+  top: var(--bt);
+  /* левее иконок «очистить» и «на весь экран» */
+  right: calc(var(--br) + 4.75rem);
 }
 
 /* на доске можно крутить колесом мыши — она «готова» к масштабу */
@@ -937,4 +871,121 @@
 .fs-task-table {
   min-height: 0;
   overflow: auto;
+}
+
+/* ===================== Панель элементов и инструменты на доске ===================== */
+.board-palette {
+  position: absolute;
+  top: var(--bt);
+  left: 50%;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.375rem;
+  max-width: calc(100% - 13rem);
+  padding: 0.375rem;
+  transform: translateX(-50%);
+  border: 1px solid hsl(var(--border));
+  border-radius: var(--radius);
+  background: hsl(var(--card) / 0.96);
+  box-shadow: 0 6px 18px rgb(0 0 0 / 0.16);
+}
+:host-context(html.dark) .board-palette,
+:host-context(html.dark) .board-tools .tool-btn {
+  border-color: hsl(0 0% 100% / 0.16);
+  box-shadow:
+    0 0 0 1px hsl(0 0% 100% / 0.04),
+    inset 0 1px 0 hsl(0 0% 100% / 0.08),
+    0 8px 20px rgb(0 0 0 / 0.4);
+}
+.pal-sq {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 3px);
+  background: hsl(var(--background));
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    transform 0.15s ease;
+}
+.pal-sq:hover {
+  border-color: hsl(var(--primary) / 0.5);
+  background: hsl(var(--accent));
+  transform: translateY(-1px);
+}
+.pal-sq:active {
+  cursor: grabbing;
+  transform: none;
+}
+.pal-sq:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.pal-sq.locked {
+  border-style: dashed;
+  background: hsl(var(--muted) / 0.5);
+  cursor: not-allowed;
+}
+.pal-sq.locked .pal-svg {
+  opacity: 0.45;
+}
+.pal-sq.locked:hover {
+  border-color: hsl(var(--border));
+  background: hsl(var(--muted) / 0.5);
+  transform: none;
+}
+.pal-svg {
+  width: 1.875rem;
+  height: 1.125rem;
+}
+.pal-lock {
+  position: absolute;
+  right: 0.125rem;
+  bottom: 0.125rem;
+  margin: 0;
+  font-size: 0.6875rem;
+}
+
+.board-tools {
+  position: absolute;
+  top: var(--bt);
+  right: var(--br);
+  z-index: 3;
+  display: flex;
+  gap: 0.375rem;
+}
+.tool-btn {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid hsl(var(--border));
+  border-radius: calc(var(--radius) - 2px);
+  background: hsl(var(--card) / 0.96);
+  color: hsl(var(--foreground));
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.14);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.tool-btn:hover {
+  background: hsl(var(--accent));
+}
+.tool-btn:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+}
+.tool-btn svg {
+  width: 1rem;
+  height: 1rem;
 }

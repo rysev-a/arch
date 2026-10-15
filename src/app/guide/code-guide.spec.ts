@@ -211,7 +211,7 @@ describe('«Отметить решённым» для всей главы', () 
     await f.whenStable();
     f.detectChanges();
     expect(btn()).toBeUndefined();
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(ASM_TASKS.length);
+    expect(el.querySelectorAll('.dash.solved').length).toBe(ASM_TASKS.length);
     const saved = JSON.parse(localStorage.getItem('processor-asm-v1')!) as { solved: string[] };
     expect(saved.solved.sort()).toEqual(ASM_TASKS.map((t) => t.id).sort());
   });

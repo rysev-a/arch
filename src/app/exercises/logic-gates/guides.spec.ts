@@ -444,19 +444,19 @@ describe('режим авто: переходы и кнопки', () => {
     const { f, el, click } = lab('simple-circuits', 'and');
     const total = SECTIONS[0].exercises.length;
     const ask = vi.spyOn(TestBed.inject(ConfirmService), 'ask');
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
+    expect(el.querySelectorAll('.dash.solved').length).toBe(0);
     ask.mockResolvedValueOnce(false); // передумали — ничего не меняется
     click('Отметить решённым');
     await f.whenStable();
     f.detectChanges();
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(0);
+    expect(el.querySelectorAll('.dash.solved').length).toBe(0);
     ask.mockResolvedValueOnce(true);
     click('Отметить решённым');
     await f.whenStable();
     f.detectChanges();
     expect(ask).toHaveBeenCalledTimes(2);
     expect(ask.mock.calls[0][0].title).toContain('Отметить главу');
-    expect(el.querySelectorAll('.step-chip.solved').length).toBe(total);
+    expect(el.querySelectorAll('.dash.solved').length).toBe(total);
     expect(
       [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),
     ).toBe(false);

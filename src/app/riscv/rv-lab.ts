@@ -16,6 +16,7 @@ import { codeGuideFor } from '../guide/code-registry';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
 import { ConfirmService } from '../ui/confirm.service';
+import { DashProgress } from '../ui/dash-progress';
 
 const STORAGE_KEY = 'processor-riscv-v1';
 const STORAGE_KEY_REAL = 'processor-riscv-real-v1';
@@ -49,7 +50,7 @@ const hex8 = (n: number): string => n.toString(16).toUpperCase().padStart(2, '0'
  */
 @Component({
   selector: 'app-rv-lab',
-  imports: [GuidePlayer],
+  imports: [GuidePlayer, DashProgress],
   templateUrl: './rv-lab.html',
   styleUrl: './rv-lab.css',
 })
@@ -73,6 +74,9 @@ export class RvLab {
   protected readonly index = signal(0);
   protected readonly codes = signal<Record<string, string>>({});
   protected readonly solved = signal<ReadonlySet<string>>(new Set());
+  protected readonly dashItems = computed(() =>
+    this.tasks.map((t) => ({ title: t.title, solved: this.solved().has(t.id) })),
+  );
   protected readonly hintShown = signal(false);
   protected readonly selectedLine = signal<number | null>(null);
   protected readonly windowId = signal('text');

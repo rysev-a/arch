@@ -46,31 +46,6 @@
 }
 
 /* ---------- задание ---------- */
-.stepper-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.step-chip {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 9999px;
-  border: 1px solid hsl(var(--border));
-  background: hsl(var(--card));
-  color: hsl(var(--muted-foreground));
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-.step-chip.current {
-  border-color: hsl(var(--primary));
-  color: hsl(var(--foreground));
-}
-.step-chip.solved {
-  background: hsl(var(--success));
-  border-color: hsl(var(--success));
-  color: hsl(var(--success-foreground));
-}
 .asm-hint {
   margin: 0 0 0.75rem;
   padding: 0.625rem 0.75rem;

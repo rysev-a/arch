@@ -15,6 +15,7 @@ import { codeGuideFor } from '../guide/code-registry';
 import { CHAPTERS, nextInCourse } from '../pages/chapters/chapters';
 import { confirmMarkChapter } from '../progress/mark-solved';
 import { ConfirmService } from '../ui/confirm.service';
+import { DashProgress } from '../ui/dash-progress';
 
 const STORAGE_KEY = 'processor-asm-v1';
 const RUN_LIMIT = 100_000;
@@ -41,7 +42,7 @@ type Runner = Machine | GateMachine;
 
 @Component({
   selector: 'app-asm-lab',
-  imports: [CpuInspector, GuidePlayer],
+  imports: [CpuInspector, GuidePlayer, DashProgress],
   templateUrl: './asm-lab.html',
   styleUrl: './asm-lab.css',
 })
@@ -55,6 +56,9 @@ export class AsmLab {
   protected readonly index = signal(0);
   protected readonly codes = signal<Record<string, string>>({});
   protected readonly solved = signal<ReadonlySet<string>>(new Set());
+  protected readonly dashItems = computed(() =>
+    this.tasks.map((t) => ({ title: t.title, solved: this.solved().has(t.id) })),
+  );
   protected readonly hintShown = signal(false);
   protected readonly solutionShown = signal(false);
   protected readonly selectedLine = signal<number | null>(null);

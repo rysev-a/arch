@@ -31,7 +31,7 @@ describe('страница RISC-V', () => {
   it('учебная плата: задания этапа 3 и периферия', () => {
     const el = render();
     expect(title(el)).toBe(`Задание 1 из ${RV_TASKS.length} · ${RV_TASKS[0].title}`);
-    expect(el.querySelectorAll('.step-chip').length).toBe(RV_TASKS.length);
+    expect(el.querySelectorAll('.dash').length).toBe(RV_TASKS.length);
     expect(el.textContent).toContain('Светодиоды');
     expect(el.textContent).not.toContain('Собрать у себя');
   });
@@ -39,7 +39,7 @@ describe('страница RISC-V', () => {
   it('реальная сборка: свои задания, вывод программы и проект для скачивания', () => {
     const el = render('real');
     expect(title(el)).toBe(`Задание 1 из ${REAL_TASKS.length} · ${REAL_TASKS[0].title}`);
-    expect(el.querySelectorAll('.step-chip').length).toBe(REAL_TASKS.length);
+    expect(el.querySelectorAll('.dash').length).toBe(REAL_TASKS.length);
     expect(el.textContent).toContain('Вывод программы');
     expect(el.textContent).not.toContain('Светодиоды');
     expect(el.textContent).toContain('Собрать у себя на компьютере');

@@ -100,6 +100,7 @@ import {
 } from './board-pan';
 import { ViewControls } from './view-controls';
 import { PixelLock } from '../../ui/pixel-lock';
+import { DashProgress } from '../../ui/dash-progress';
 import { AutoWire, suggestWires } from './auto-wire';
 import { AUTO_WIRE_RADIUS_FACTOR, SettingsService } from '../../settings/settings.service';
 import { guideFor } from './guide-registry';
@@ -158,6 +159,7 @@ const DROP_ID = 'auto-new';
     GuidePlayer,
     ViewControls,
     PixelLock,
+    DashProgress,
   ],
   templateUrl: './circuit-lab.html',
   styleUrl: './circuit-lab.css',
@@ -200,6 +202,9 @@ export class CircuitLab {
   protected readonly solvedSet = signal<Set<number>>(new Set());
 
   protected readonly exercises = computed<readonly Exercise[]>(() => this.section().exercises);
+  protected readonly dashItems = computed(() =>
+    this.exercises().map((ex, i) => ({ title: ex.title, solved: this.solvedSet().has(i) })),
+  );
   protected readonly exercise = computed<Exercise>(() => this.exercises()[this.currentIndex()]);
   protected readonly activeInputs = computed<readonly InputId[]>(() => this.exercise().inputs);
   protected readonly activeOutputs = computed<readonly string[]>(() => this.exercise().outputs);
@@ -1103,7 +1108,7 @@ export class CircuitLab {
       if (el && typeof el.closest === 'function') {
         if (el.closest('.board-svg')) {
           this.place(placing, this.toBoard(event.clientX, event.clientY), held);
-        } else if (el.closest('.palette')) {
+        } else if (el.closest('.palette, .board-palette')) {
           this.place(placing, this.defaultSpot());
         }
       }

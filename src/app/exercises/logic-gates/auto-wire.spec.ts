@@ -177,7 +177,7 @@ describe('автоподстановка связей на доске', () => {
     const svg = el.querySelector('.board-svg') as SVGSVGElement;
     svg.getBoundingClientRect = () =>
       ({ left: 0, top: 0, width: 880, height: 440, right: 880, bottom: 440 }) as DOMRect;
-    const item = el.querySelector('.palette-item') as Element; // НЕ
+    const item = el.querySelector('.pal-sq') as Element; // НЕ
     const move = (x: number, y: number) => {
       document.dispatchEvent(ev('pointermove', { clientX: x, clientY: y }));
       f.detectChanges();

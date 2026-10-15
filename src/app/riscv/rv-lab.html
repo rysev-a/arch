@@ -19,23 +19,8 @@
         </button>
       }
     </div>
-    <div class="card-content stepper-row">
-      @for (t of tasks; track t.id; let i = $index) {
-        <button
-          type="button"
-          class="step-chip"
-          [class.current]="i === index()"
-          [class.solved]="solved().has(t.id)"
-          [title]="i + 1 + '. ' + t.title"
-          (click)="selectTask(i)"
-        >
-          @if (solved().has(t.id)) {
-            ✓
-          } @else {
-            {{ i + 1 }}
-          }
-        </button>
-      }
+    <div class="card-content">
+      <app-dash-progress [items]="dashItems()" [current]="index()" (pick)="selectTask($event)" />
     </div>
   </div>
 

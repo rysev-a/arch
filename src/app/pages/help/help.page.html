@@ -107,18 +107,22 @@
             <!-- ================= Схемы ================= -->
             @case ('drag') {
               <svg viewBox="0 0 360 200" class="ill" aria-hidden="true">
-                <rect class="bd" x="8" y="12" width="96" height="176" rx="8" />
-                <text class="tm" x="20" y="32">Элементы</text>
-                <rect class="item" x="18" y="44" width="76" height="56" rx="6" />
-                <use href="#h-and" x="40" y="52" width="46" height="40" />
-                <rect class="bd" x="116" y="12" width="236" height="176" rx="8" />
-                <rect x="116" y="12" width="236" height="176" rx="8" fill="url(#h-dots)" />
+                <rect class="bd" x="8" y="12" width="344" height="176" rx="8" />
+                <rect x="8" y="12" width="344" height="176" rx="8" fill="url(#h-dots)" />
+                <rect class="win" x="112" y="22" width="136" height="38" rx="8" />
+                <rect class="item" x="120" y="28" width="28" height="26" rx="5" />
+                <use href="#h-and" x="127" y="35" width="16" height="14" />
+                <rect class="item" x="154" y="28" width="28" height="26" rx="5" />
+                <use href="#h-not" x="160" y="35" width="16" height="14" />
+                <rect class="item locked-sq" x="188" y="28" width="28" height="26" rx="5" />
+                <use href="#h-and" x="194" y="35" width="16" height="14" opacity="0.4" />
+                <rect class="lock-px" x="207" y="46" width="5" height="5" />
                 <g class="drag-placed">
-                  <use href="#h-and" x="226" y="82" width="46" height="40" />
+                  <use href="#h-and" x="226" y="112" width="46" height="40" />
                 </g>
                 <g class="drag-ghost">
-                  <use href="#h-and" x="40" y="52" width="46" height="40" />
-                  <use href="#h-cur" x="58" y="74" width="14" height="20" />
+                  <use href="#h-and" width="46" height="40" />
+                  <use href="#h-cur" x="18" y="22" width="14" height="20" />
                 </g>
               </svg>
             }
@@ -439,26 +443,18 @@
               <svg viewBox="0 0 360 200" class="ill" aria-hidden="true">
                 <rect class="win" x="16" y="10" width="328" height="180" rx="8" />
                 <text class="tx b" x="30" y="32">Простые схемы</text>
+                <text class="tm" x="314" y="32" text-anchor="end">
+                  одно упражнение — одна чёрточка
+                </text>
                 @for (n of chips; track n; let i = $index) {
                   <rect
-                    [class]="'pchip pchip' + i"
-                    [attr.x]="30 + i * 37"
-                    y="46"
-                    width="30"
-                    height="30"
-                    rx="15"
+                    [class]="'pdash pchip' + i"
+                    [attr.x]="30 + i * 38"
+                    y="52"
+                    width="32"
+                    height="4"
+                    rx="2"
                   />
-                  <text class="tx b pnum" [attr.x]="45 + i * 37" y="66" text-anchor="middle">
-                    {{ n }}
-                  </text>
-                  <text
-                    [class]="'tx b onok ptick ptick' + i"
-                    [attr.x]="45 + i * 37"
-                    y="66"
-                    text-anchor="middle"
-                  >
-                    ✓
-                  </text>
                 }
                 <text class="tm" x="30" y="108">Прогресс — в браузере. Сохраните его в файл:</text>
                 <rect class="btn-main save-btn" x="30" y="122" width="132" height="26" rx="6" />
