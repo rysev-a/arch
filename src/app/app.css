@@ -83,6 +83,8 @@
   align-self: start;
   max-height: calc(100vh - 4.25rem);
   overflow-y: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
   padding: 1.25rem 0 1.5rem;
 }
 

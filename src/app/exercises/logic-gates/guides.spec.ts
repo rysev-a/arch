@@ -438,4 +438,18 @@ describe('режим авто: переходы и кнопки', () => {
     expect(el.querySelector('app-guide-player')).toBeNull();
     expect(el.textContent).toContain('нужны блоки из предыдущих упражнений');
   });
+
+  it('«Отметить решённым» засчитывает упражнение и пропадает', () => {
+    const { el, click } = lab('simple-circuits', 'and');
+    expect(el.querySelector('.step-chip.solved')).toBeNull();
+    click('Отметить решённым');
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(1);
+    expect(
+      [...el.querySelectorAll('button')].some((b) => b.textContent!.includes('Отметить решённым')),
+    ).toBe(false);
+    const saved = JSON.parse(localStorage.getItem('processor-progress-v2-simple')!) as {
+      solved: number[];
+    };
+    expect(saved.solved).toContain(SECTIONS[0].exercises.findIndex((e) => e.id === 'and'));
+  });
 });

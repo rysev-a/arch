@@ -182,3 +182,34 @@ describe('режим авто для программ: в лаборатории
     expect(saved.solved).toContain(task.id);
   });
 });
+
+describe('«Отметить решённым»', () => {
+  beforeEach(() => localStorage.clear());
+
+  it('в лаборатории программ задание засчитывается вручную и запоминается', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        {
+          provide: ActivatedRoute,
+          useValue: {
+            snapshot: { data: {} },
+            paramMap: of(convertToParamMap({ exercise: ASM_TASKS[2].id })),
+            queryParamMap: of(convertToParamMap({})),
+          },
+        },
+      ],
+    });
+    const f = TestBed.createComponent(AsmLab);
+    f.detectChanges();
+    const el = f.nativeElement as HTMLElement;
+    const btn = () =>
+      [...el.querySelectorAll('button')].find((b) => b.textContent!.includes('Отметить решённым'));
+    expect(btn()).toBeTruthy();
+    btn()!.click();
+    f.detectChanges();
+    expect(btn()).toBeUndefined();
+    expect(el.querySelectorAll('.step-chip.solved').length).toBe(1);
+    const saved = JSON.parse(localStorage.getItem('processor-asm-v1')!) as { solved: string[] };
+    expect(saved.solved).toEqual([ASM_TASKS[2].id]);
+  });
+});

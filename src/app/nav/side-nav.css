@@ -137,3 +137,17 @@
   background: hsl(var(--secondary));
   color: hsl(var(--foreground));
 }
+
+/* плавное раскрытие главы: высота анимируется от 0 до содержимого */
+.ex-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.22s ease;
+}
+.ex-wrap.open {
+  grid-template-rows: 1fr;
+}
+.ex-inner {
+  min-height: 0;
+  overflow: hidden;
+}

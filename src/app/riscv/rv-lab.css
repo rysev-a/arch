@@ -473,3 +473,7 @@
 .guide-pad {
   height: 5rem;
 }
+
+.mark-done {
+  margin-left: auto;
+}

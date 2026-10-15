@@ -878,3 +878,7 @@
 .wire.guide-focus .wire-line {
   stroke-width: 4;
 }
+
+.mark-done {
+  margin-left: auto;
+}

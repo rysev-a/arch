@@ -24,6 +24,16 @@
           }
         </button>
       }
+      @if (!solved().has(task().id)) {
+        <button
+          type="button"
+          class="btn btn-outline btn-sm mark-done"
+          (click)="markSolved()"
+          title="Если вы уже знаете этот материал: задание будет считаться решённым"
+        >
+          Отметить решённым
+        </button>
+      }
     </div>
   </div>
 

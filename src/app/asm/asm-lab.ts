@@ -267,6 +267,12 @@ export class AsmLab {
     this.version.update((n) => n + 1);
   }
 
+  /** Кто уже знает материал, может засчитать задание сам */
+  protected markSolved(): void {
+    this.solved.update((s) => new Set(s).add(this.task().id));
+    this.save();
+  }
+
   protected reset(): void {
     this.resets.update((n) => n + 1);
   }

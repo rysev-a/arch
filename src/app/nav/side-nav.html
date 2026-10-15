@@ -29,40 +29,42 @@
         </span>
       </button>
 
-      @if (isOpen(c.slug)) {
-        <ul class="ex-list">
-          @for (e of c.items; track e.id) {
-            <li>
-              <a
-                class="ex"
-                [class.current]="e.open"
-                [routerLink]="['/', c.slug, e.id]"
-                (click)="navigated.emit()"
-              >
-                <span
-                  class="status"
-                  [class]="'status ' + e.status"
-                  [attr.title]="statusLabel(e.status)"
+      <div class="ex-wrap" [class.open]="isOpen(c.slug)" [attr.inert]="isOpen(c.slug) ? null : ''">
+        <div class="ex-inner">
+          <ul class="ex-list">
+            @for (e of c.items; track e.id) {
+              <li>
+                <a
+                  class="ex"
+                  [class.current]="e.open"
+                  [routerLink]="['/', c.slug, e.id]"
+                  (click)="navigated.emit()"
                 >
-                  @switch (e.status) {
-                    @case ('solved') {
-                      ✓
+                  <span
+                    class="status"
+                    [class]="'status ' + e.status"
+                    [attr.title]="statusLabel(e.status)"
+                  >
+                    @switch (e.status) {
+                      @case ('solved') {
+                        ✓
+                      }
+                      @case ('current') {
+                        ●
+                      }
+                      @default {
+                        ○
+                      }
                     }
-                    @case ('current') {
-                      ●
-                    }
-                    @default {
-                      ○
-                    }
-                  }
-                </span>
-                <span class="ex-title">{{ e.title }}</span>
-                <span class="sr-only">— {{ statusLabel(e.status) }}</span>
-              </a>
-            </li>
-          }
-        </ul>
-      }
+                  </span>
+                  <span class="ex-title">{{ e.title }}</span>
+                  <span class="sr-only">— {{ statusLabel(e.status) }}</span>
+                </a>
+              </li>
+            }
+          </ul>
+        </div>
+      </div>
     </div>
   }
 

@@ -463,6 +463,12 @@ export class CircuitLab {
      ============================================================ */
 
   /** Переход к упражнению — это переход по адресу /<глава>/<упражнение>; доску сменит sectionEffect */
+  /** Кто уже знает материал, может засчитать упражнение сам */
+  protected markSolved(): void {
+    this.solvedSet.update((s) => new Set(s).add(this.currentIndex()));
+    this.persist();
+  }
+
   protected selectExercise(index: number): void {
     if (index === this.currentIndex()) return;
     const ex = this.exercises()[index];

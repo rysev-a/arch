@@ -57,6 +57,8 @@
 }
 
 html {
+  /* место под полосу прокрутки держится всегда: контент не «прыгает», когда она появляется */
+  scrollbar-gutter: stable;
   color-scheme: light;
 }
 html.dark {
@@ -325,4 +327,41 @@ body {
 /* доска развёрнута на весь экран — страница под ней не прокручивается */
 html.board-fullscreen {
   overflow: hidden;
+}
+
+/* ============================================================
+   Плавность
+   ============================================================ */
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* между страницами: шапка и боковая панель стоят на месте, плавно меняется только содержимое */
+.app-header {
+  view-transition-name: app-header;
+}
+.app-side {
+  view-transition-name: app-side;
+}
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+}
+
+/* кто просит поменьше движения — получает мгновенные переходы */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
 }
